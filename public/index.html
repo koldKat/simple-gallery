@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Gallery</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/css/style.css?v=33">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <h1><a class="app-title-link" href="/"><span id="app-name">Simple Gallery</span> <span class="app-version-stack"><span id="app-tagline" class="app-tagline"></span><span id="app-version-label" class="app-version-label">v. 0.2.0.0 α</span></span></a></h1>
+      </div>
+      <div class="topbar-actions">
+        <div class="auth-box" id="auth-box"></div>
+        <div class="stats-stack">
+          <div class="stats-row">
+            <span class="stats-label">Totals</span>
+            <div class="stats-card">
+              <span id="stats" class="stats-breakdown">
+                <span class="stat-part stat-models"><span class="stat-num">0</span><span class="stat-word">models</span></span>
+                <span class="stat-part stat-galleries"><span class="stat-num">0</span><span class="stat-word">galleries</span></span>
+                <span class="stat-part stat-images"><span class="stat-num">0</span><span class="stat-word">images</span></span>
+              </span>
+            </div>
+          </div>
+          <div class="stats-row" id="user-stats-row" hidden>
+            <span class="stats-label">Unseen</span>
+            <div class="stats-card">
+              <span id="user-stats" class="user-stats stats-breakdown"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-head">
+          <div class="sidebar-title-row">
+            <h2>Models</h2>
+            <label class="sidebar-toggle" for="hide-seen-models" hidden>
+              <input id="hide-seen-models" type="checkbox">
+              <span>Hide seen</span>
+            </label>
+          </div>
+          <div id="model-count" class="sidebar-count">0 shown (0 total)</div>
+          <input id="search" type="search" placeholder="Filter">
+        </div>
+        <div id="model-list" class="model-list"></div>
+      </aside>
+
+      <section class="content">
+        <div class="content-head">
+          <div>
+            <p class="eyebrow" id="gallery-kicker">Select a gallery</p>
+            <h2 id="gallery-title">Galleries</h2>
+          </div>
+          <div class="view-actions">
+            <button id="home-btn" type="button" data-tooltip="Latest galleries" aria-label="Latest galleries" hidden>Home</button>
+            <button id="favorites-btn" type="button" data-tooltip="View favorites" aria-label="View favorites" hidden>Favorites</button>
+            <button id="browse-models-btn" type="button" data-tooltip="Browse all models" aria-label="Browse all models">Browse Models</button>
+            <button id="model-favorite-btn" type="button" data-tooltip="Favorite model" aria-label="Favorite model" hidden>☆</button>
+            <button id="model-seen-btn" type="button" data-tooltip="Mark all galleries in this model seen" aria-label="Mark all galleries in this model seen" hidden>Mark model seen</button>
+            <button id="grid-small" type="button" data-tooltip="Small thumbnails" aria-label="Small thumbnails">Small</button>
+            <button id="grid-large" type="button" data-tooltip="Large thumbnails" aria-label="Large thumbnails">Large</button>
+          </div>
+        </div>
+        <div id="model-browser" class="model-browser" hidden></div>
+        <div id="favorites-view" class="favorites-view" hidden></div>
+        <div id="selected-gallery-bar" class="selected-gallery-bar" hidden></div>
+        <div id="gallery-list" class="gallery-list"></div>
+        <div id="image-grid" class="image-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="lightbox" class="lightbox" hidden>
+    <button id="close-lightbox" class="icon-btn" type="button" data-tooltip="Close" aria-label="Close">×</button>
+    <button id="lightbox-download" class="icon-btn lightbox-download" type="button" data-tooltip="Download image" aria-label="Download image">⤓</button>
+    <button id="lightbox-seen" class="icon-btn lightbox-seen" type="button" data-tooltip="Mark seen" aria-label="Mark seen">✓</button>
+    <button id="lightbox-favorite" class="icon-btn lightbox-favorite" type="button" data-tooltip="Favorite image" aria-label="Favorite image">☆</button>
+    <button id="prev-image" class="nav-btn prev" type="button" data-tooltip="Previous" aria-label="Previous">‹</button>
+    <div class="lightbox-media">
+      <img id="lightbox-img" alt="">
+      <div id="lightbox-loading" class="lightbox-loading" hidden>
+        <div class="lightbox-loading-bar"></div>
+        <div id="lightbox-loading-text" class="lightbox-loading-text">Loading...</div>
+      </div>
+    </div>
+    <button id="next-image" class="nav-btn next" type="button" data-tooltip="Next" aria-label="Next">›</button>
+    <div id="lightbox-caption" class="caption"></div>
+  </div>
+
+  <script src="/js/app.js?v=96"></script>
+</body>
+</html>

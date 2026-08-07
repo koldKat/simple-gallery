@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gallery Admin</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/css/style.css?v=48">
+</head>
+<body>
+  <div class="app-shell admin-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow" id="admin-status">Loading</p>
+        <h1 id="admin-title">Gallery Admin</h1>
+      </div>
+      <div class="topbar-actions admin-topbar-actions">
+        <div class="admin-runtime-stats">
+          <article>
+            <span>Heap Used / Avail</span>
+            <strong id="heap-size-stat">&mdash;</strong>
+          </article>
+          <article>
+            <span>RSS / CPU Avg</span>
+            <strong id="rss-size-stat">&mdash;</strong>
+          </article>
+          <article>
+            <span>Remote In / Local In</span>
+            <strong id="traffic-in-stat">&mdash;</strong>
+          </article>
+          <article>
+            <span>Remote Out / Local Out</span>
+            <strong id="traffic-out-stat">&mdash;</strong>
+          </article>
+        </div>
+        <div class="admin-tabs">
+          <button id="admin-tab-main" type="button" class="is-active">Main</button>
+          <button id="admin-tab-errors" type="button">Errors</button>
+          <button id="admin-tab-users" type="button">Users</button>
+          <button id="admin-tab-audit" type="button">Audit</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="admin-layout">
+      <div id="admin-main-panel-group" class="admin-panel-group">
+      <section class="admin-panel">
+        <div class="content-head">
+          <div>
+            <p class="eyebrow">Settings</p>
+            <h2>Application Version</h2>
+          </div>
+        </div>
+        <form id="settings-form" class="admin-form admin-form-wide">
+          <input id="version-label" type="text" maxlength="40" autocomplete="off">
+          <label class="admin-inline-check" for="auto-rescan-enabled">
+            <input id="auto-rescan-enabled" type="checkbox">
+            <span>Auto Rescan All</span>
+          </label>
+          <input id="auto-rescan-time" type="time" step="60">
+          <button id="save-settings-btn" type="submit">Save</button>
+        </form>
+        <div class="admin-settings-sub">
+          <div id="auto-rescan-next">Loading schedule</div>
+          <div id="last-rescan-all-duration">Loading rescan history</div>
+        </div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="content-head">
+          <div>
+            <p class="eyebrow">Instance</p>
+            <h2>Runtime Profile</h2>
+          </div>
+        </div>
+        <form id="instance-settings-form" class="admin-instance-form">
+          <label>Application Name<input id="app-name" type="text" maxlength="120" autocomplete="off"></label>
+          <label>Tagline<input id="app-tagline" type="text" maxlength="160" autocomplete="off"></label>
+          <label>Admin Name<input id="admin-name" type="text" maxlength="120" autocomplete="off"></label>
+          <label>Content Root<input id="content-root" type="text" maxlength="1000" autocomplete="off"></label>
+          <label>Media URL Prefix<input id="media-url-prefix" type="text" maxlength="200" autocomplete="off"></label>
+          <label class="admin-instance-wide">Source Profile JSON<textarea id="source-profile" rows="10" spellcheck="false"></textarea></label>
+          <label class="admin-instance-wide">SEO Profile JSON<textarea id="seo-profile" rows="10" spellcheck="false"></textarea></label>
+          <div class="admin-instance-actions"><button id="save-instance-settings-btn" type="submit">Save Profile</button></div>
+        </form>
+      </section>
+
+      <section class="admin-panel">
+        <div class="content-head">
+          <div>
+            <p class="eyebrow">Import</p>
+            <h2>Source URL</h2>
+          </div>
+        </div>
+        <form id="import-form" class="admin-form">
+          <input id="model-url" type="url" placeholder="Model or listing URL" autocomplete="off" required>
+          <button id="load-btn" type="button">Load</button>
+          <button id="import-btn" type="submit">Import</button>
+        </form>
+        <div class="admin-form admin-form-wide">
+          <input id="all-models-url" type="url" placeholder="All models URL" autocomplete="off">
+          <button id="find-missing-models-btn" type="button">Find Missing Models</button>
+        </div>
+        <div class="admin-secondary-actions">
+          <button id="import-loaded-btn" type="button" disabled>Import Loaded</button>
+          <button id="stop-after-model-btn" type="button" disabled>Stop After Model</button>
+          <button id="refresh-gallery-btn" type="button">Refresh Gallery</button>
+          <button id="verify-known-btn" type="button">Verify Known</button>
+          <span id="scanned-url-count">Loading saved model URLs</span>
+          <button id="audit-urls-btn" type="button">Audit URLs</button>
+          <button id="rescan-all-btn" type="button">Rescan All</button>
+          <button id="pause-rescan-all-btn" type="button" disabled>Pause Rescan All</button>
+          <button id="resume-rescan-all-btn" type="button" disabled>Resume Rescan All</button>
+        </div>
+        <div class="loaded-models" id="url-audit" hidden></div>
+        <div class="loaded-models" id="loaded-models" hidden></div>
+        <div id="admin-error" class="admin-error"></div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="content-head">
+          <div>
+            <p class="eyebrow" id="import-kicker">Loading</p>
+            <h2 id="import-title">Loading import status</h2>
+          </div>
+        </div>
+        <div class="admin-stats">
+          <article>
+            <span>Galleries Processed</span>
+            <strong id="galleries-stat">&mdash;</strong>
+          </article>
+          <article>
+            <span>New / Known</span>
+            <strong id="known-stat">&mdash;</strong>
+          </article>
+          <article>
+            <span>Images</span>
+            <strong id="images-stat">&mdash;</strong>
+          </article>
+          <article>
+            <span>Skipped</span>
+            <strong id="skipped-stat">&mdash;</strong>
+          </article>
+          <article>
+            <span>Database Size</span>
+            <strong id="db-size-stat">&mdash;</strong>
+          </article>
+          <article>
+            <span>Actual Size</span>
+            <strong id="actual-size-stat">&mdash;</strong>
+          </article>
+          <article>
+            <span>Thumb Size</span>
+            <strong id="thumb-size-stat">&mdash;</strong>
+          </article>
+        </div>
+        <div class="admin-stats-actions">
+          <button id="vacuum-db-btn" type="button" class="admin-stat-btn">Vacuum Database</button>
+        </div>
+        <div class="log-list" id="log-list"></div>
+      </section>
+
+      <section class="admin-panel">
+        <div class="content-head">
+          <div>
+            <p class="eyebrow">Views</p>
+            <h2>View Stats</h2>
+          </div>
+          <div class="view-actions">
+            <button id="refresh-view-stats-btn" type="button">Refresh</button>
+          </div>
+        </div>
+        <div class="view-stats-top">
+          <div class="admin-stats view-stats-summary">
+            <article>
+              <span>Model Views</span>
+              <strong id="model-views-stat">&mdash;</strong>
+            </article>
+            <article>
+              <span>Gallery Views</span>
+              <strong id="gallery-views-stat">&mdash;</strong>
+            </article>
+            <article>
+              <span>Image Views</span>
+              <strong id="image-views-stat">&mdash;</strong>
+            </article>
+            <article class="view-stats-ghost" aria-hidden="true"></article>
+          </div>
+        </div>
+        <div class="view-stats-grid" id="view-stats"></div>
+      </section>
+
+      </div>
+
+      <div id="admin-errors-panel-group" class="admin-panel-group" hidden>
+        <section class="admin-panel">
+          <div class="content-head">
+            <div>
+              <p class="eyebrow">Errors</p>
+              <h2>Recent Import Errors</h2>
+            </div>
+            <div class="view-actions">
+              <button id="clear-errors-btn" type="button">Clear</button>
+            </div>
+          </div>
+          <div class="import-errors standalone-errors" id="import-errors" hidden></div>
+        </section>
+      </div>
+
+      <div id="admin-users-panel-group" class="admin-panel-group" hidden>
+        <section class="admin-panel">
+          <div class="content-head">
+            <div>
+              <p class="eyebrow">Users</p>
+              <h2>Registered Users</h2>
+            </div>
+            <div class="view-actions">
+              <button id="refresh-users-btn" type="button">Refresh</button>
+            </div>
+          </div>
+          <div class="admin-users-list" id="admin-users-list"></div>
+        </section>
+      </div>
+
+      <div id="admin-audit-panel-group" class="admin-panel-group" hidden>
+        <section class="admin-panel">
+          <div class="content-head">
+            <div>
+              <p class="eyebrow">Audit</p>
+              <h2>Saved Model URLs</h2>
+            </div>
+            <div class="view-actions">
+              <button id="refresh-audit-btn" type="button">Refresh</button>
+            </div>
+          </div>
+          <div class="admin-audit-list" id="admin-audit-list"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/admin.js?v=58"></script>
+</body>
+</html>

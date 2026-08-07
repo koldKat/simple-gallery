@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Runtime database files and Syncthing conflict copies
+gallery*.db
+gallery*.db-*
+gallery*.db-shm
+gallery*.db-wal
+gallery.sync-conflict-*.db*
+
+# Generated backups and downloaded media
+db-backups/
+public/media/
+
+# Local configuration and logs
+.env
+.env.*
+!.env.example
+*.log
+npm-debug.log*
+
+# Local assistant metadata
+.agents/
+.codex/
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
