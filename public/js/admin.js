@@ -1,9 +1,11 @@
 const els = {
   tabMain: document.querySelector('#admin-tab-main'),
+  tabProfile: document.querySelector('#admin-tab-profile'),
   tabErrors: document.querySelector('#admin-tab-errors'),
   tabUsers: document.querySelector('#admin-tab-users'),
   tabAudit: document.querySelector('#admin-tab-audit'),
   mainPanelGroup: document.querySelector('#admin-main-panel-group'),
+  profilePanelGroup: document.querySelector('#admin-profile-panel-group'),
   errorsPanelGroup: document.querySelector('#admin-errors-panel-group'),
   usersPanelGroup: document.querySelector('#admin-users-panel-group'),
   auditPanelGroup: document.querySelector('#admin-audit-panel-group'),
@@ -93,12 +95,14 @@ let runtimeRefreshInFlight = false;
 let adminLibraryRoot = '';
 
 function setAdminPanel(panel) {
-  adminPanel = panel === 'errors' ? 'errors' : panel === 'users' ? 'users' : panel === 'audit' ? 'audit' : 'main';
+  adminPanel = panel === 'profile' ? 'profile' : panel === 'errors' ? 'errors' : panel === 'users' ? 'users' : panel === 'audit' ? 'audit' : 'main';
   els.mainPanelGroup.hidden = adminPanel !== 'main';
+  els.profilePanelGroup.hidden = adminPanel !== 'profile';
   els.errorsPanelGroup.hidden = adminPanel !== 'errors';
   els.usersPanelGroup.hidden = adminPanel !== 'users';
   els.auditPanelGroup.hidden = adminPanel !== 'audit';
   els.tabMain.classList.toggle('is-active', adminPanel === 'main');
+  els.tabProfile.classList.toggle('is-active', adminPanel === 'profile');
   els.tabErrors.classList.toggle('is-active', adminPanel === 'errors');
   els.tabUsers.classList.toggle('is-active', adminPanel === 'users');
   els.tabAudit.classList.toggle('is-active', adminPanel === 'audit');
@@ -778,6 +782,7 @@ els.load.addEventListener('click', async () => {
 });
 
 els.tabMain.addEventListener('click', () => setAdminPanel('main'));
+els.tabProfile.addEventListener('click', () => setAdminPanel('profile'));
 els.tabErrors.addEventListener('click', () => setAdminPanel('errors'));
 els.tabUsers.addEventListener('click', () => setAdminPanel('users'));
 els.tabAudit.addEventListener('click', () => setAdminPanel('audit'));

@@ -692,10 +692,20 @@ input:disabled {
 
 .admin-instance-form textarea {
   min-height: 9rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #12161c;
+  padding: 0.65rem 0.75rem;
+  outline: none;
+  caret-color: var(--accent-2);
   resize: vertical;
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.75rem;
   line-height: 1.4;
+}
+
+.admin-instance-form textarea:focus {
+  border-color: rgba(95, 183, 178, 0.65);
 }
 
 .admin-instance-wide,
