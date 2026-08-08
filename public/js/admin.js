@@ -23,7 +23,8 @@ const els = {
   seoProfile: document.querySelector('#seo-profile'),
   saveInstanceSettings: document.querySelector('#save-instance-settings-btn'),
   autoRescanEnabled: document.querySelector('#auto-rescan-enabled'),
-  autoRescanTime: document.querySelector('#auto-rescan-time'),
+  autoRescanHour: document.querySelector('#auto-rescan-hour'),
+  autoRescanMinute: document.querySelector('#auto-rescan-minute'),
   autoRescanNext: document.querySelector('#auto-rescan-next'),
   lastRescanAllDuration: document.querySelector('#last-rescan-all-duration'),
   saveSettings: document.querySelector('#save-settings-btn'),
@@ -215,11 +216,64 @@ function renderAppSettings(libraryState) {
   els.url.value = String(app.lastSourceUrl || '');
   els.allModelsUrl.value = String(app.allModelsUrl || '');
   els.autoRescanEnabled.checked = Boolean(app.autoRescanEnabled);
-  els.autoRescanTime.value = String(app.autoRescanTime || '');
+  setSchedulerTime(app.autoRescanTime);
   els.autoRescanNext.textContent = app.nextAutoRescanAt
     ? `Next auto rescan: ${formatDateTime(app.nextAutoRescanAt)}`
     : 'Next auto rescan: not scheduled';
   renderLastRescanAll(app);
+}
+
+function normalizeSchedulerPart(value, maximum) {
+  const parsed = Number.parseInt(String(value), 10);
+  const normalized = Number.isFinite(parsed) ? Math.min(maximum, Math.max(0, parsed)) : 0;
+  return String(normalized).padStart(2, '0');
+}
+
+function setSchedulerTime(value) {
+  const match = String(value || '').match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+  els.autoRescanHour.value = match?.[1] || '01';
+  els.autoRescanMinute.value = match?.[2] || '45';
+}
+
+function schedulerTimeValue() {
+  const hour = normalizeSchedulerPart(els.autoRescanHour.value, 23);
+  const minute = normalizeSchedulerPart(els.autoRescanMinute.value, 59);
+  els.autoRescanHour.value = hour;
+  els.autoRescanMinute.value = minute;
+  return `${hour}:${minute}`;
+}
+
+function stepSchedulerPart(part, amount) {
+  const input = part === 'hour' ? els.autoRescanHour : els.autoRescanMinute;
+  const maximum = part === 'hour' ? 23 : 59;
+  const current = Number.parseInt(input.value, 10) || 0;
+  input.value = String((current + amount + maximum + 1) % (maximum + 1)).padStart(2, '0');
+  input.setAttribute('aria-valuenow', String(Number.parseInt(input.value, 10)));
+}
+
+function initializeSchedulerTimePicker() {
+  setSchedulerTime('01:45');
+  [els.autoRescanHour, els.autoRescanMinute].forEach((input, index) => {
+    const part = index === 0 ? 'hour' : 'minute';
+    const maximum = index === 0 ? 23 : 59;
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/\D/g, '').slice(0, 2);
+    });
+    input.addEventListener('blur', () => {
+      input.value = normalizeSchedulerPart(input.value, maximum);
+      input.setAttribute('aria-valuenow', String(Number.parseInt(input.value, 10)));
+    });
+    input.addEventListener('keydown', event => {
+      if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+      event.preventDefault();
+      stepSchedulerPart(part, event.key === 'ArrowUp' ? 1 : -1);
+    });
+  });
+  document.querySelectorAll('[data-time-part][data-time-step]').forEach(button => {
+    button.addEventListener('click', () => {
+      stepSchedulerPart(button.dataset.timePart, Number(button.dataset.timeStep));
+    });
+  });
 }
 
 function prettyJson(value) {
@@ -431,7 +485,25 @@ async function refreshAuditView() {
 function formatDateTime(value) {
   if (!value) return 'never';
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? 'unknown' : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? 'unknown' : date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  });
+}
+
+function formatTime(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'unknown' : date.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  });
 }
 
 function formatDuration(ms) {
@@ -627,7 +699,7 @@ function renderImportErrors(payload) {
         <div class="import-error-item">
           <strong>${error.modelName || 'Import error'}${error.gallery ? ` / ${error.gallery}` : ''}</strong>
           <div class="import-error-meta">
-            <span>${new Date(error.at).toLocaleString()} - ${error.title || error.sourceUrl || error.modelUrl || ''}</span>
+            <span>${formatDateTime(error.at)} - ${error.title || error.sourceUrl || error.modelUrl || ''}</span>
             <button type="button" data-dismiss-error="${error.id}">Dismiss</button>
           </div>
           <small>${error.message || 'Unknown error'}</small>
@@ -687,7 +759,7 @@ function renderImport(snapshot) {
   for (const log of (snapshot.logs || []).slice().reverse()) {
     const item = document.createElement('div');
     item.className = 'log-item';
-    item.textContent = `[${new Date(log.at).toLocaleTimeString()}] ${log.message}`;
+    item.textContent = `[${formatTime(log.at)}] ${log.message}`;
     els.logs.append(item);
   }
 }
@@ -1094,11 +1166,11 @@ els.settingsForm.addEventListener('submit', async (event) => {
     const payload = await saveAdminSettings({
       versionLabel: els.versionLabel.value.trim(),
       autoRescanEnabled: els.autoRescanEnabled.checked,
-      autoRescanTime: els.autoRescanTime.value,
+      autoRescanTime: schedulerTimeValue(),
     });
     els.versionLabel.value = payload.app?.versionLabel || els.versionLabel.value;
     els.autoRescanEnabled.checked = Boolean(payload.app?.autoRescanEnabled);
-    els.autoRescanTime.value = payload.app?.autoRescanTime || els.autoRescanTime.value;
+    setSchedulerTime(payload.app?.autoRescanTime || schedulerTimeValue());
     els.autoRescanNext.textContent = payload.app?.nextAutoRescanAt
       ? `Next auto rescan: ${formatDateTime(payload.app.nextAutoRescanAt)}`
       : 'Next auto rescan: not scheduled';
@@ -1180,6 +1252,7 @@ if (window.EventSource) {
   source.addEventListener('view-stats', event => renderViewStats(JSON.parse(event.data)));
 }
 
+initializeSchedulerTimePicker();
 setAdminPanel('main');
 loadStatus();
 window.setInterval(() => {

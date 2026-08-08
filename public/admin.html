@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gallery Admin</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="/css/style.css?v=49">
+  <link rel="stylesheet" href="/css/style.css?v=50">
 </head>
 <body>
   <div class="app-shell admin-shell">
@@ -58,7 +58,23 @@
             <input id="auto-rescan-enabled" type="checkbox">
             <span>Auto Rescan All</span>
           </label>
-          <input id="auto-rescan-time" type="time" step="60">
+          <div class="admin-time-picker" role="group" aria-label="Auto Rescan All time, 24-hour format">
+            <div class="admin-time-part">
+              <input id="auto-rescan-hour" type="text" inputmode="numeric" maxlength="2" role="spinbutton" aria-label="Hour" aria-valuemin="0" aria-valuemax="23" autocomplete="off">
+              <span class="admin-time-steppers">
+                <button type="button" data-time-part="hour" data-time-step="1" aria-label="Increase hour">&#9650;</button>
+                <button type="button" data-time-part="hour" data-time-step="-1" aria-label="Decrease hour">&#9660;</button>
+              </span>
+            </div>
+            <span class="admin-time-separator" aria-hidden="true">:</span>
+            <div class="admin-time-part">
+              <input id="auto-rescan-minute" type="text" inputmode="numeric" maxlength="2" role="spinbutton" aria-label="Minute" aria-valuemin="0" aria-valuemax="59" autocomplete="off">
+              <span class="admin-time-steppers">
+                <button type="button" data-time-part="minute" data-time-step="1" aria-label="Increase minute">&#9650;</button>
+                <button type="button" data-time-part="minute" data-time-step="-1" aria-label="Decrease minute">&#9660;</button>
+              </span>
+            </div>
+          </div>
           <button id="save-settings-btn" type="submit">Save</button>
         </form>
         <div class="admin-settings-sub">
@@ -242,6 +258,6 @@
     </main>
   </div>
 
-  <script src="/js/admin.js?v=59"></script>
+  <script src="/js/admin.js?v=62"></script>
 </body>
 </html>

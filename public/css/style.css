@@ -641,6 +641,74 @@ input:disabled {
   grid-template-columns: minmax(0, 1fr) auto auto auto;
 }
 
+.admin-time-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  min-height: 32px;
+}
+
+.admin-time-part {
+  display: grid;
+  grid-template-columns: 2.25rem 0.9rem;
+  height: 32px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #12161c;
+}
+
+.admin-time-part:focus-within {
+  border-color: rgba(95, 183, 178, 0.72);
+  box-shadow: 0 0 0 2px rgba(95, 183, 178, 0.12);
+}
+
+.admin-form .admin-time-part input {
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0 0.25rem;
+  background: transparent;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  outline: 0;
+}
+
+.admin-time-steppers {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  border-left: 1px solid var(--line);
+}
+
+.admin-form .admin-time-steppers button {
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: #202832;
+  color: var(--muted);
+  font-size: 0.48rem;
+  line-height: 1;
+}
+
+.admin-form .admin-time-steppers button:first-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-form .admin-time-steppers button:hover,
+.admin-form .admin-time-steppers button:focus-visible {
+  background: #2a3542;
+  color: var(--text);
+}
+
+.admin-time-separator {
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .admin-form button {
   min-height: 28px;
   font-size: 0.8rem;
