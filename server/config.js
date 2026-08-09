@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 
 function positiveNumber(value, fallback) {
@@ -8,6 +9,7 @@ function positiveNumber(value, fallback) {
 }
 
 const APP_ROOT = path.join(__dirname, '..');
+const VERSION_PATH = path.join(APP_ROOT, 'VERSION');
 const PORT = Number(process.env.PORT || 3020);
 const ROOT = path.join(APP_ROOT, 'public');
 const DEFAULT_MEDIA_ROOT = path.resolve(process.env.MEDIA_ROOT || path.join(ROOT, 'media'));
@@ -30,7 +32,8 @@ const AUTO_RESCAN_DEFAULT_TIME = '01:45';
 const AUTO_RESCAN_RETRY_MS = 15 * 60 * 1000;
 const DB_BACKUP_DEFAULT_TIME = '02:30';
 const DB_BACKUP_RETENTION_DAYS = 30;
-const DEFAULT_VERSION_LABEL = 'v. 0.2.0.0 α';
+const DEFAULT_VERSION_LABEL = fs.readFileSync(VERSION_PATH, 'utf8').trim();
+if (!DEFAULT_VERSION_LABEL) throw new Error('VERSION must contain an application version.');
 const SESSION_MAX_AGE_MS = 1000 * 60 * 60 * 24 * 14;
 const FOREGROUND_ACTIVITY_WINDOW_MS = positiveNumber(process.env.FOREGROUND_ACTIVITY_WINDOW_MS, 6000);
 const IMPORT_FOREGROUND_PAUSE_MS = positiveNumber(process.env.IMPORT_FOREGROUND_PAUSE_MS, 900);
@@ -57,6 +60,7 @@ const MIME = {
 
 module.exports = {
   APP_ROOT,
+  VERSION_PATH,
   PORT,
   ROOT,
   DEFAULT_MEDIA_ROOT,

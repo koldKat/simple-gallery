@@ -34,6 +34,7 @@ const { handleSeenRoute } = require('./server/routes/seen');
 const { handleViewsRoute } = require('./server/routes/views');
 const {
   APP_ROOT,
+  VERSION_PATH,
   PORT,
   ROOT,
   DEFAULT_MEDIA_ROOT,
@@ -1149,6 +1150,37 @@ function setAppSetting(key, value) {
       value = excluded.value,
       updated_at = excluded.updated_at
   `).run(key, value, nowIso()));
+}
+
+function writeVersionMirror(value) {
+  const tempPath = `${VERSION_PATH}.tmp-${process.pid}`;
+  try {
+    fs.writeFileSync(tempPath, `${value}\n`, 'utf8');
+    fs.renameSync(tempPath, VERSION_PATH);
+  } finally {
+    try { fs.rmSync(tempPath, { force: true }); } catch {}
+  }
+}
+
+function setVersionLabel(value) {
+  const previousFile = fs.readFileSync(VERSION_PATH, 'utf8');
+  const save = db.transaction(() => {
+    db.prepare(`
+      INSERT INTO app_settings (key, value, updated_at)
+      VALUES ('version_label', ?, ?)
+      ON CONFLICT(key) DO UPDATE SET
+        value = excluded.value,
+        updated_at = excluded.updated_at
+    `).run(value, nowIso());
+    writeVersionMirror(value);
+  });
+
+  try {
+    withBusyRetry(save);
+  } catch (error) {
+    try { fs.writeFileSync(VERSION_PATH, previousFile, 'utf8'); } catch {}
+    throw error;
+  }
 }
 
 function normalizedJsonSetting(value, label) {
@@ -5798,7 +5830,7 @@ server = http.createServer((req, res) => {
           const payload = JSON.parse(body || '{}');
           if (Object.hasOwn(payload, 'versionLabel')) {
             const versionLabel = String(payload.versionLabel || '').trim().slice(0, 40) || DEFAULT_VERSION_LABEL;
-            setAppSetting('version_label', versionLabel);
+            setVersionLabel(versionLabel);
           }
           if (Object.hasOwn(payload, 'lastSourceUrl')) {
             setAppSetting('last_source_url', String(payload.lastSourceUrl || '').trim().slice(0, 1000));
