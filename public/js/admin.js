@@ -330,7 +330,10 @@ function renderScanProgress(notice) {
     els.status.textContent = importActive ? 'Import Running' : 'Localhost Admin';
     if (!importActive) {
       els.kicker.textContent = 'Idle';
-      els.title.textContent = notice.message || 'No import running';
+      const totals = notice.totals || {};
+      els.title.textContent = notice.status === 'ready' && Number(totals.galleries || 0) > 0
+        ? `Loaded ${totals.images || 0} images across ${totals.galleries} galleries.`
+        : (notice.message || 'No import running');
     }
   }
 }

@@ -4794,7 +4794,7 @@ function mergeModelStateFromWorker(payload) {
   lastState = {
     ...lastState,
     status: 'ready',
-    message: payload.message || `Loaded ${lastState.totals.images} images across ${lastState.totals.galleries} galleries.`,
+    message: `Loaded ${lastState.totals.images} images across ${lastState.totals.galleries} galleries.`,
     scannedAt: payload.scannedAt || nowIso(),
     models,
     latest: latestGallerySummaries(models),
