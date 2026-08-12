@@ -1352,7 +1352,7 @@ function render() {
   updateDocumentTitle();
   if (els.appName) els.appName.textContent = data.app?.name || 'Simple Gallery';
   if (els.appTagline) els.appTagline.textContent = data.app?.tagline || '';
-  els.versionLabel.textContent = data.app?.versionLabel || 'v. 0.2.0.0 α';
+  els.versionLabel.textContent = data.app?.versionLabel || '';
   renderHeaderStats();
   if (els.hideSeenModels) els.hideSeenModels.checked = state.hideSeenModels;
   const hideSeenToggle = els.hideSeenModels?.closest('.sidebar-toggle');

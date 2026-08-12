@@ -5256,7 +5256,7 @@ function renderSeoDocument(req, options = {}) {
     <button id="next-image" class="nav-btn next" type="button" data-tooltip="Next" aria-label="Next">›</button>
     <div id="lightbox-caption" class="caption"></div>
   </div>
-  <script src="/js/app.js?v=96"></script>
+  <script src="/js/app.js?v=97"></script>
 </body>
 </html>`;
 }

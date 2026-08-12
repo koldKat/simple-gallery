@@ -48,6 +48,12 @@ Authentication and compact unseen statistics are loaded before the full personal
 
 The Admin page does not embed source URLs or configured values in its HTML or JavaScript. Version, source URLs, schedule settings, application identity, content root, source profile, SEO profile, and runtime statistics are populated from the private Admin state endpoint after loading. Initial data fields use neutral empty or loading states.
 
+### Application Version
+
+The application version remains a manually entered value in Admin. Saving the Admin settings writes the same value to both `app_settings.version_label` and the tracked `VERSION` file; there is no automatic version incrementing.
+
+For an established database, `app_settings.version_label` is the runtime value. On a fresh database where that setting does not exist, startup seeds it from `VERSION`. Startup only reads the file and never overwrites it.
+
 ## Database Safety
 
 `gallery.db` is a live SQLite database. Starting the server can write to it during schema initialization, cleanup, traffic accounting, scheduled work, or normal requests.
