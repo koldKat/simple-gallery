@@ -1205,6 +1205,23 @@ function normalizeAutoRescanTime(value) {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
+const AUTO_RESCAN_ALL_DAYS = Object.freeze([0, 1, 2, 3, 4, 5, 6]);
+
+function parseAutoRescanDays(value) {
+  const values = Array.isArray(value) ? value : String(value ?? '').split(',');
+  return Array.from(new Set(values
+    .map(day => String(day).trim())
+    .filter(Boolean)
+    .map(day => Number(day))
+    .filter(day => Number.isInteger(day) && day >= 0 && day <= 6)))
+    .sort((a, b) => a - b);
+}
+
+function autoRescanDaysSetting() {
+  const days = parseAutoRescanDays(appSetting('auto_rescan_days', AUTO_RESCAN_ALL_DAYS.join(',')));
+  return days.length ? days : [...AUTO_RESCAN_ALL_DAYS];
+}
+
 function autoRescanEnabledSetting() {
   return appSetting('auto_rescan_enabled', '1') === '1';
 }
@@ -1213,17 +1230,29 @@ function autoRescanTimeSetting() {
   return normalizeAutoRescanTime(appSetting('auto_rescan_time', AUTO_RESCAN_DEFAULT_TIME));
 }
 
-function nextAutoRescanDate(timeValue, from = new Date()) {
+function nextAutoRescanDate(timeValue, dayValues, from = new Date()) {
   const normalized = normalizeAutoRescanTime(timeValue);
+  const allowedDays = new Set(parseAutoRescanDays(dayValues));
   const [hourRaw, minuteRaw] = normalized.split(':');
   const hour = Number(hourRaw || 0);
   const minute = Number(minuteRaw || 0);
   const next = new Date(from);
   next.setSeconds(0, 0);
   next.setHours(hour, minute, 0, 0);
-  if (next.getTime() <= from.getTime()) {
-    next.setDate(next.getDate() + 1);
+
+  for (let offset = 0; offset <= 7; offset += 1) {
+    if (offset > 0) {
+      next.setDate(next.getDate() + 1);
+      next.setHours(hour, minute, 0, 0);
+    }
+    if (allowedDays.has(next.getDay()) && next.getTime() > from.getTime()) return next;
   }
+
+  // Settings validation prevents this, but retain a safe daily fallback.
+  do {
+    next.setDate(next.getDate() + 1);
+    next.setHours(hour, minute, 0, 0);
+  } while (next.getTime() <= from.getTime());
   return next;
 }
 
@@ -1238,7 +1267,7 @@ function scheduleAutoRescan(reason = 'settings') {
     broadcast('state', stateNotice());
     return;
   }
-  const next = nextAutoRescanDate(autoRescanTimeSetting());
+  const next = nextAutoRescanDate(autoRescanTimeSetting(), autoRescanDaysSetting());
   nextAutoRescanAt = next.toISOString();
   const delay = Math.max(1000, next.getTime() - Date.now());
   autoRescanTimer = setTimeout(() => runScheduledAutoRescan('daily'), delay);
@@ -1501,6 +1530,7 @@ function appMetadata(options = {}) {
     homeTitle: renderInstanceTemplate(profile.homeTitle, { appName: name }, '{appName} - Image Galleries'),
     autoRescanEnabled: appSetting('auto_rescan_enabled', '1') === '1',
     autoRescanTime: appSetting('auto_rescan_time', AUTO_RESCAN_DEFAULT_TIME),
+    autoRescanDays: autoRescanDaysSetting(),
     nextAutoRescanAt,
     ...lastRescanAll,
   };
@@ -5828,6 +5858,11 @@ server = http.createServer((req, res) => {
       readRequestBody(req)
         .then(body => {
           const payload = JSON.parse(body || '{}');
+          const hasAutoRescanDays = Object.hasOwn(payload, 'autoRescanDays');
+          const autoRescanDays = hasAutoRescanDays ? parseAutoRescanDays(payload.autoRescanDays) : null;
+          if (hasAutoRescanDays && !autoRescanDays.length) {
+            throw new Error('Select at least one Auto Rescan All day.');
+          }
           if (Object.hasOwn(payload, 'versionLabel')) {
             const versionLabel = String(payload.versionLabel || '').trim().slice(0, 40) || DEFAULT_VERSION_LABEL;
             setVersionLabel(versionLabel);
@@ -5843,6 +5878,9 @@ server = http.createServer((req, res) => {
           }
           if (Object.hasOwn(payload, 'autoRescanTime')) {
             setAppSetting('auto_rescan_time', normalizeAutoRescanTime(payload.autoRescanTime));
+          }
+          if (hasAutoRescanDays) {
+            setAppSetting('auto_rescan_days', autoRescanDays.join(','));
           }
           if (Object.hasOwn(payload, 'appName')) {
             setAppSetting('app_name', String(payload.appName || '').trim().slice(0, 120) || 'Simple Gallery');

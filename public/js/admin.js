@@ -25,6 +25,7 @@ const els = {
   autoRescanEnabled: document.querySelector('#auto-rescan-enabled'),
   autoRescanHour: document.querySelector('#auto-rescan-hour'),
   autoRescanMinute: document.querySelector('#auto-rescan-minute'),
+  autoRescanDays: Array.from(document.querySelectorAll('[name="auto-rescan-day"]')),
   autoRescanNext: document.querySelector('#auto-rescan-next'),
   lastRescanAllDuration: document.querySelector('#last-rescan-all-duration'),
   saveSettings: document.querySelector('#save-settings-btn'),
@@ -217,6 +218,7 @@ function renderAppSettings(libraryState) {
   els.allModelsUrl.value = String(app.allModelsUrl || '');
   els.autoRescanEnabled.checked = Boolean(app.autoRescanEnabled);
   setSchedulerTime(app.autoRescanTime);
+  setSchedulerDays(app.autoRescanDays);
   els.autoRescanNext.textContent = app.nextAutoRescanAt
     ? `Next auto rescan: ${formatDateTime(app.nextAutoRescanAt)}`
     : 'Next auto rescan: not scheduled';
@@ -241,6 +243,18 @@ function schedulerTimeValue() {
   els.autoRescanHour.value = hour;
   els.autoRescanMinute.value = minute;
   return `${hour}:${minute}`;
+}
+
+function setSchedulerDays(value) {
+  const values = Array.isArray(value) && value.length ? value : [0, 1, 2, 3, 4, 5, 6];
+  const selected = new Set(values.map(Number));
+  for (const input of els.autoRescanDays) input.checked = selected.has(Number(input.value));
+}
+
+function schedulerDaysValue() {
+  const days = els.autoRescanDays.filter(input => input.checked).map(input => Number(input.value));
+  if (!days.length) throw new Error('Select at least one Auto Rescan All day.');
+  return days;
 }
 
 function stepSchedulerPart(part, amount) {
@@ -1170,10 +1184,12 @@ els.settingsForm.addEventListener('submit', async (event) => {
       versionLabel: els.versionLabel.value.trim(),
       autoRescanEnabled: els.autoRescanEnabled.checked,
       autoRescanTime: schedulerTimeValue(),
+      autoRescanDays: schedulerDaysValue(),
     });
     els.versionLabel.value = payload.app?.versionLabel || els.versionLabel.value;
     els.autoRescanEnabled.checked = Boolean(payload.app?.autoRescanEnabled);
     setSchedulerTime(payload.app?.autoRescanTime || schedulerTimeValue());
+    setSchedulerDays(payload.app?.autoRescanDays);
     els.autoRescanNext.textContent = payload.app?.nextAutoRescanAt
       ? `Next auto rescan: ${formatDateTime(payload.app.nextAutoRescanAt)}`
       : 'Next auto rescan: not scheduled';

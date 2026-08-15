@@ -48,6 +48,8 @@ Authentication and compact unseen statistics are loaded before the full personal
 
 The Admin page does not embed source URLs or configured values in its HTML or JavaScript. Version, source URLs, schedule settings, application identity, content root, source profile, SEO profile, and runtime statistics are populated from the private Admin state endpoint after loading. Initial data fields use neutral empty or loading states.
 
+Auto Rescan All can be enabled for a selected 24-hour time and one or more weekdays. Installations without a saved weekday selection run every day, preserving the original schedule behavior.
+
 ### Application Version
 
 The application version remains a manually entered value in Admin. Saving the Admin settings writes the same value to both `app_settings.version_label` and the tracked `VERSION` file; there is no automatic version incrementing.

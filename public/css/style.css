@@ -738,6 +738,60 @@ input:disabled {
   font-weight: 700;
 }
 
+.admin-weekday-picker {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.admin-weekday-picker > span {
+  margin-right: 0.15rem;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.admin-weekday-picker label {
+  position: relative;
+  cursor: pointer;
+}
+
+.admin-weekday-picker input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.admin-weekday-picker label span {
+  display: grid;
+  place-items: center;
+  min-width: 2.35rem;
+  height: 28px;
+  padding: 0 0.42rem;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(18, 22, 28, 0.82);
+  color: var(--muted);
+  font-size: 0.74rem;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.admin-weekday-picker input:checked + span {
+  border-color: rgba(95, 183, 178, 0.58);
+  background: rgba(95, 183, 178, 0.16);
+  color: var(--text);
+}
+
+.admin-weekday-picker input:focus-visible + span {
+  outline: 2px solid rgba(95, 183, 178, 0.42);
+  outline-offset: 2px;
+}
+
 .admin-form button {
   min-height: 28px;
   font-size: 0.8rem;
@@ -2250,6 +2304,11 @@ body.has-gallery-backdrop .content {
 
   .admin-runtime-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-weekday-picker {
+    justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .icon-btn {
