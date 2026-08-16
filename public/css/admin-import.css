@@ -1,0 +1,141 @@
+.loaded-models {
+  margin: 0 0.9rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #12161c;
+}
+
+.loaded-models-head {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.loaded-models-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.35rem;
+  max-height: 260px;
+  overflow: auto;
+  padding: 0.75rem;
+}
+
+.loaded-models-grid span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+}
+
+.url-audit-list {
+  display: grid;
+  gap: 0.25rem;
+  max-height: 300px;
+  overflow: auto;
+  padding: 0.55rem;
+}
+
+.url-audit-item {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.8fr) minmax(180px, 1fr) minmax(260px, 1.5fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.32rem 0.45rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #12161c;
+}
+
+.url-audit-item strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.url-audit-item span,
+.url-audit-item a {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.url-audit-item a {
+  color: var(--accent-2);
+  text-decoration: none;
+}
+
+.url-audit-item a:hover {
+  text-decoration: underline;
+}
+
+.url-audit-item button {
+  justify-self: end;
+  min-height: 24px;
+  padding: 0 0.48rem;
+  font-size: 0.7rem;
+}
+
+.import-errors {
+  margin: 0 0.9rem 0.9rem;
+  border: 1px solid rgba(232, 104, 104, 0.34);
+  border-radius: 8px;
+  background: rgba(232, 104, 104, 0.06);
+}
+
+.import-error-list {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.75rem;
+}
+
+.import-error-item {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(232, 104, 104, 0.22);
+  border-radius: 6px;
+  background: #12161c;
+}
+
+.import-error-item strong {
+  color: var(--danger);
+  font-size: 0.9rem;
+}
+
+.import-error-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.import-error-meta button {
+  min-height: 28px;
+  padding: 0 0.65rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.import-error-meta span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.import-error-item span,
+.import-error-item small {
+  color: var(--muted);
+  font-size: 0.8rem;
+}

@@ -1,0 +1,406 @@
+.admin-layout {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.admin-panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(27, 32, 39, 0.9);
+}
+
+.admin-users-list {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.9rem;
+}
+
+.admin-audit-list {
+  display: grid;
+  gap: 1rem;
+  padding: 0.9rem;
+}
+
+.admin-audit-section {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.admin-user-card {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(18, 22, 28, 0.58);
+}
+
+.admin-user-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.admin-user-card-head span,
+.admin-user-card-meta {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.admin-shell .topbar {
+  align-items: center;
+  padding: 0.75rem 0.9rem;
+}
+
+.admin-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: auto;
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.admin-runtime-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: min(50vw, 51rem);
+  gap: 0.35rem;
+  flex: 0 0 auto;
+}
+
+.admin-runtime-stats article {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+  padding: 0.5rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(18, 22, 28, 0.82);
+}
+
+.admin-runtime-stats article:nth-child(1) {
+  border-color: rgba(230, 180, 80, 0.28);
+  background: linear-gradient(145deg, rgba(230, 180, 80, 0.09), rgba(18, 22, 28, 0.84) 58%);
+  box-shadow: inset 0 2px rgba(230, 180, 80, 0.72);
+}
+
+.admin-runtime-stats article:nth-child(2) {
+  border-color: rgba(95, 183, 178, 0.28);
+  background: linear-gradient(145deg, rgba(95, 183, 178, 0.09), rgba(18, 22, 28, 0.84) 58%);
+  box-shadow: inset 0 2px rgba(95, 183, 178, 0.72);
+}
+
+.admin-runtime-stats article:nth-child(3) {
+  border-color: rgba(105, 157, 207, 0.28);
+  background: linear-gradient(145deg, rgba(105, 157, 207, 0.09), rgba(18, 22, 28, 0.84) 58%);
+  box-shadow: inset 0 2px rgba(105, 157, 207, 0.72);
+}
+
+.admin-runtime-stats article:nth-child(4) {
+  border-color: rgba(216, 137, 104, 0.28);
+  background: linear-gradient(145deg, rgba(216, 137, 104, 0.09), rgba(18, 22, 28, 0.84) 58%);
+  box-shadow: inset 0 2px rgba(216, 137, 104, 0.72);
+}
+
+.admin-runtime-stats article:nth-child(1) span { color: rgba(235, 196, 116, 0.92); }
+.admin-runtime-stats article:nth-child(2) span { color: rgba(124, 199, 194, 0.92); }
+.admin-runtime-stats article:nth-child(3) span { color: rgba(132, 177, 219, 0.92); }
+.admin-runtime-stats article:nth-child(4) span { color: rgba(224, 157, 129, 0.92); }
+
+.admin-runtime-stats span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.admin-runtime-stats strong {
+  font-size: 0.96rem;
+  line-height: 1.1;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: nowrap;
+  justify-content: end;
+  flex: 0 0 auto;
+}
+
+.admin-shell .topbar > div:first-child {
+  display: block;
+  padding: 0;
+}
+
+.admin-shell .topbar h1 {
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.admin-shell .eyebrow {
+  font-size: 0.66rem;
+}
+
+.admin-shell .content-head h2 {
+  font-size: 1rem;
+  line-height: 1.15;
+}
+
+#import-title {
+  font-size: 0.95rem;
+  line-height: 1.25;
+  font-weight: 650;
+}
+
+.admin-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.75rem;
+  padding: 0.9rem;
+}
+
+.admin-form input {
+  min-height: 32px;
+  font-size: 0.9rem;
+}
+
+.admin-form + .admin-form {
+  padding-top: 0;
+}
+
+.admin-form-wide {
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+}
+
+.admin-time-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  min-height: 32px;
+}
+
+.admin-time-part {
+  display: grid;
+  grid-template-columns: 2.25rem 0.9rem;
+  height: 32px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #12161c;
+}
+
+.admin-time-part:focus-within {
+  border-color: rgba(95, 183, 178, 0.72);
+  box-shadow: 0 0 0 2px rgba(95, 183, 178, 0.12);
+}
+
+.admin-form .admin-time-part input {
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0 0.25rem;
+  background: transparent;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  outline: 0;
+}
+
+.admin-time-steppers {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  border-left: 1px solid var(--line);
+}
+
+.admin-form .admin-time-steppers button {
+  min-width: 0;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: #202832;
+  color: var(--muted);
+  font-size: 0.48rem;
+  line-height: 1;
+}
+
+.admin-form .admin-time-steppers button:first-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-form .admin-time-steppers button:hover,
+.admin-form .admin-time-steppers button:focus-visible {
+  background: #2a3542;
+  color: var(--text);
+}
+
+.admin-time-separator {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.admin-schedule-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.admin-weekday-picker {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.admin-weekday-picker > span {
+  margin-right: 0.15rem;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.admin-weekday-picker label {
+  position: relative;
+  cursor: pointer;
+}
+
+.admin-weekday-picker input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.admin-weekday-picker label span {
+  display: grid;
+  place-items: center;
+  min-width: 2.35rem;
+  height: 28px;
+  padding: 0 0.42rem;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(18, 22, 28, 0.82);
+  color: var(--muted);
+  font-size: 0.74rem;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.admin-weekday-picker input:checked + span {
+  border-color: rgba(95, 183, 178, 0.58);
+  background: rgba(95, 183, 178, 0.16);
+  color: var(--text);
+}
+
+.admin-weekday-picker input:focus-visible + span {
+  outline: 2px solid rgba(95, 183, 178, 0.42);
+  outline-offset: 2px;
+}
+
+.admin-form button {
+  min-height: 28px;
+  font-size: 0.8rem;
+  min-width: 86px;
+  padding: 0 0.65rem;
+}
+
+.admin-inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 32px;
+  color: var(--text);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.admin-inline-check input {
+  margin: 0;
+}
+
+.admin-settings-sub {
+  padding: 0 0.9rem 0.9rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.admin-schedule-row .admin-settings-sub {
+  padding: 0;
+  line-height: 1.35;
+}
+
+.admin-instance-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  padding: 0.9rem;
+}
+
+.admin-instance-form label {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 650;
+}
+
+.admin-instance-form input,
+.admin-instance-form textarea {
+  width: 100%;
+  color: var(--text);
+  font: inherit;
+}
+
+.admin-instance-form textarea {
+  min-height: 9rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #12161c;
+  padding: 0.65rem 0.75rem;
+  outline: none;
+  caret-color: var(--accent-2);
+  resize: vertical;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.admin-instance-form textarea:focus {
+  border-color: rgba(95, 183, 178, 0.65);
+}
+
+.admin-instance-wide,
+.admin-instance-actions {
+  grid-column: 1 / -1;
+}
+
+.admin-instance-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-secondary-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.9rem 0.75rem;
+  color: var(--muted);
+}
+
+.admin-secondary-actions button {
+  min-height: 28px;
+  padding: 0 0.55rem;
+  font-size: 0.78rem;
+}
+
+.admin-secondary-actions span {
+  font-size: 0.86rem;
+}

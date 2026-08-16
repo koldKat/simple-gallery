@@ -1,0 +1,229 @@
+.favorites-view {
+  display: grid;
+  gap: 1rem;
+  padding: 0.8rem;
+}
+
+.favorites-section {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.favorites-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.favorites-section h3 {
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.favorites-section-head button {
+  min-height: 32px;
+  padding: 0 0.65rem;
+  font-size: 0.86rem;
+}
+
+.favorites-loading {
+  display: grid;
+  gap: 0.55rem;
+  align-content: center;
+  min-height: 180px;
+  padding: 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(18, 22, 28, 0.62);
+  color: var(--muted);
+}
+
+.favorites-loading strong {
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.favorites-load-error button {
+  justify-self: start;
+}
+
+.favorites-loading-bar {
+  position: relative;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(214, 222, 232, 0.1);
+}
+
+.favorites-loading-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 38%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: favorites-loading-sweep 1.05s ease-in-out infinite;
+}
+
+@keyframes favorites-loading-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(265%); }
+}
+
+.favorite-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.favorite-image-group {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.38rem 0.55rem 0.38rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(18, 22, 28, 0.52);
+}
+
+.favorite-image-group-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 0.92rem;
+  font-weight: 600;
+  list-style: none;
+  line-height: 1.1;
+}
+
+.favorite-image-group-summary::-webkit-details-marker {
+  display: none;
+}
+
+.favorite-image-group-summary span:last-child {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.favorite-image-group-status {
+  padding: 0.7rem 0.2rem 0.35rem;
+  color: var(--muted);
+  font-size: 0.84rem;
+  text-align: center;
+}
+
+.favorite-image-load-more {
+  justify-self: center;
+  min-width: 140px;
+  margin: 0.45rem 0 0.2rem;
+}
+
+.favorite-image-item {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.favorite-image-card {
+  position: relative;
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #252c36;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.favorite-image-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px 6px 0 0;
+  object-fit: cover;
+  background: #11161c;
+}
+
+.favorite-image-meta {
+  padding: 0.55rem 0.6rem 0.65rem;
+}
+
+.favorite-image-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.favorite-image-actions button {
+  min-height: 32px;
+  padding: 0 0.55rem;
+  font-size: 0.86rem;
+}
+
+.letter-bar,
+.pager-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.letter-bar {
+  justify-content: center;
+}
+
+.letter-bar a,
+.letter-bar button {
+  min-width: 32px;
+  min-height: 28px;
+  padding: 0 0.45rem;
+  font-size: 0.76rem;
+  border-radius: 6px;
+}
+
+.browser-model-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.55rem;
+}
+
+.browser-model-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #252c36;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.browser-model-card img {
+  width: 82px;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #11161c;
+}
+
+.pager-row {
+  justify-content: center;
+  color: var(--muted);
+}
+
+.pager-row a,
+.pager-row button {
+  min-height: 28px;
+  padding: 0 0.6rem;
+  font-size: 0.78rem;
+  border-radius: 6px;
+}

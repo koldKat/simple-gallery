@@ -1,0 +1,220 @@
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.88);
+}
+
+.lightbox[hidden] {
+  display: none;
+}
+
+.lightbox-media {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: min(96vw, 320px);
+  min-height: min(78vh, 320px);
+}
+
+.lightbox img {
+  max-width: min(96vw, 1600px);
+  max-height: 92vh;
+  object-fit: contain;
+  transition: opacity 160ms ease;
+}
+
+.lightbox img.is-pending {
+  opacity: 0;
+}
+
+.lightbox img.is-loading {
+  opacity: 0.18;
+}
+
+.lightbox img.is-error {
+  opacity: 0.08;
+}
+
+.lightbox-loading {
+  position: absolute;
+  inset: auto 50% 50%;
+  transform: translate(-50%, 50%);
+  display: grid;
+  gap: 0.55rem;
+  width: min(280px, calc(100vw - 48px));
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(17, 19, 23, 0.88);
+  backdrop-filter: blur(6px);
+}
+
+.lightbox-loading[hidden] {
+  display: none;
+}
+
+.lightbox-loading-bar {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(214, 222, 232, 0.12);
+}
+
+.lightbox-loading-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -40%;
+  width: 40%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  animation: lightbox-loading-slide 1s ease-in-out infinite;
+}
+
+.lightbox-loading.is-error .lightbox-loading-bar {
+  background: rgba(232, 104, 104, 0.18);
+}
+
+.lightbox-loading.is-error .lightbox-loading-bar::after {
+  inset: 0;
+  width: auto;
+  background: rgba(232, 104, 104, 0.72);
+  animation: none;
+}
+
+.lightbox-loading.is-error .lightbox-loading-text {
+  color: #f2b1b1;
+}
+
+.lightbox-loading-text {
+  color: var(--muted);
+  font-size: 0.84rem;
+  text-align: center;
+}
+
+@keyframes image-tile-skeleton {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+@keyframes image-tile-loading-slide {
+  from { left: -40%; }
+  to { left: 100%; }
+}
+
+@keyframes lightbox-loading-slide {
+  from { left: -40%; }
+  to { left: 100%; }
+}
+
+.icon-btn,
+.nav-btn {
+  position: fixed;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(214, 222, 232, 0.14);
+  background: rgba(17, 19, 23, 0.84);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+}
+
+.icon-btn {
+  top: 8px;
+  min-width: 34px;
+  min-height: 34px;
+  font-size: 1.05rem;
+}
+
+.lightbox-favorite {
+  right: 48px;
+  border-color: rgba(230, 180, 80, 0.42);
+  color: var(--muted);
+}
+
+.lightbox-download {
+  right: 128px;
+  border-color: rgba(214, 222, 232, 0.3);
+  background: rgba(25, 30, 37, 0.92);
+  color: var(--text);
+  font-size: 1.18rem;
+  font-weight: 700;
+}
+
+.lightbox-seen {
+  right: 88px;
+  border-color: rgba(95, 183, 178, 0.42);
+  color: var(--muted);
+}
+
+#close-lightbox {
+  right: 8px;
+  font-size: 1.2rem;
+}
+
+.lightbox-favorite.is-favorite {
+  color: var(--accent);
+  border-color: rgba(230, 180, 80, 0.78);
+}
+
+.lightbox-seen.is-seen {
+  color: var(--accent-2);
+  border-color: rgba(95, 183, 178, 0.78);
+}
+
+.lightbox-download:disabled,
+.lightbox-favorite:disabled {
+  opacity: 0.45;
+}
+
+.lightbox-seen:disabled {
+  opacity: 0.45;
+}
+
+.nav-btn {
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 52px;
+  font-size: 1.45rem;
+  border-radius: 8px;
+}
+
+.nav-btn.prev { left: 8px; }
+.nav-btn.next { right: 8px; }
+
+.icon-btn:hover,
+.nav-btn:hover {
+  background: rgba(34, 40, 49, 0.94);
+  border-color: rgba(230, 180, 80, 0.34);
+}
+
+.icon-btn:disabled,
+.nav-btn:disabled {
+  opacity: 0.34;
+  cursor: not-allowed;
+}
+
+.nav-btn:disabled:hover {
+  background: rgba(17, 19, 23, 0.84);
+  border-color: rgba(214, 222, 232, 0.14);
+}
+
+.caption {
+  position: fixed;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  max-width: min(860px, calc(100vw - 20px));
+  padding: 0.38rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid rgba(214, 222, 232, 0.12);
+  background: rgba(17, 19, 23, 0.84);
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-align: center;
+  backdrop-filter: blur(10px);
+}

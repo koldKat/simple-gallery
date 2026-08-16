@@ -33,6 +33,8 @@ Node.js and SQLite gallery application served by `server.js`.
 
 The main browser entry point is `public/js/app.js`. Reusable browser controllers and pure helpers live beside it as ES modules, including `app-auth.js`, `app-backdrop.js`, `app-data.js`, `app-events.js`, `app-favorite-actions.js`, `app-favorites.js`, `app-gallery-cache.js`, `app-gallery-view.js`, `app-header.js`, `app-lightbox.js`, `app-model-navigation.js`, `app-navigation.js`, `app-preferences.js`, `app-preloader.js`, `app-seen-state.js`, `app-tooltips.js`, and `app-utils.js`. The HTML loads `app.js` as a module, and `app.js` remains responsible for application state and view orchestration.
 
+Browser styles are loaded in cascade order from focused files under `public/css/`: `foundation.css` owns shared tokens, controls, and the application header; `admin-shell.css`, `admin-import.css`, and `admin-stats.css` own Admin structure/settings, import/audit views, and reporting respectively; `gallery-shell.css` owns the content shell, sidebar, cards, previews, and tooltips; `gallery-detail.css`, `favorites.css`, `images.css`, and `lightbox.css` own their named gallery features; and `responsive.css` owns mobile and reduced-motion overrides. `style.css`, `admin.css`, and `gallery.css` are retained only as compatibility import manifests for stale or external references.
+
 Keep modules dependency-injected where they need process state. A module should not open the database, start timers, or mutate global application state merely because it is imported. This keeps startup ownership visible in `server.js` and permits isolated tests without opening `gallery.db`.
 
 ## Running

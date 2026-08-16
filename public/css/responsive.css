@@ -1,0 +1,142 @@
+@media (max-width: 820px) {
+  .gallery-backdrop {
+    display: none;
+  }
+
+  .topbar,
+  .content-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .topbar-actions {
+    display: flex;
+    gap: 0.65rem;
+  }
+
+  .auth-box,
+  .auth-profile {
+    display: flex;
+  }
+
+  .topbar-actions,
+  .auth-box,
+  .auth-profile,
+  .auth-profile-head,
+  .auth-profile-settings {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .auth-profile-head,
+  .auth-profile-settings,
+  .stats-stack {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .stats-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .stats-card {
+    white-space: normal;
+  }
+
+  .sidebar-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .admin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-runtime-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-schedule-row {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-weekday-picker {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .icon-btn {
+    top: 6px;
+    min-width: 30px;
+    min-height: 30px;
+  }
+
+  .lightbox-seen {
+    right: 78px;
+  }
+
+  .lightbox-download {
+    right: 114px;
+  }
+
+  .lightbox-favorite {
+    right: 42px;
+  }
+
+  #close-lightbox {
+    right: 6px;
+  }
+
+  .nav-btn {
+    width: 30px;
+    height: 46px;
+  }
+
+  .nav-btn.prev { left: 6px; }
+  .nav-btn.next { right: 6px; }
+
+  .view-stats-grid,
+  .view-stats-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .url-audit-item {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .url-audit-item button {
+    justify-self: start;
+  }
+
+  .selected-gallery-bar {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .selected-gallery-bar img {
+    width: 64px;
+  }
+
+  .selected-gallery-cover {
+    width: 64px;
+  }
+
+  .selected-gallery-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-backdrop-layer {
+    transition: none;
+  }
+}

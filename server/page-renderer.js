@@ -205,7 +205,16 @@ function createPageRenderer({ appMetadata, seoProfile, normalizeModelName, galle
     <meta name="twitter:description" content="${escapeHtml(description)}">
     ${image ? `<meta name="twitter:image" content="${escapeHtml(image)}">` : ''}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="stylesheet" href="/css/style.css?v=33">
+    <link rel="stylesheet" href="/css/foundation.css?v=1">
+    <link rel="stylesheet" href="/css/admin-shell.css?v=1">
+    <link rel="stylesheet" href="/css/admin-import.css?v=1">
+    <link rel="stylesheet" href="/css/admin-stats.css?v=1">
+    <link rel="stylesheet" href="/css/gallery-shell.css?v=1">
+    <link rel="stylesheet" href="/css/gallery-detail.css?v=1">
+    <link rel="stylesheet" href="/css/favorites.css?v=1">
+    <link rel="stylesheet" href="/css/images.css?v=1">
+    <link rel="stylesheet" href="/css/lightbox.css?v=1">
+    <link rel="stylesheet" href="/css/responsive.css?v=1">
     ${headLinks.join('\n  ')}
     ${jsonLd.map(entry => `<script type="application/ld+json">${escapeJsonForHtml(entry)}</script>`).join('\n  ')}
   </head>
