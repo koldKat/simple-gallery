@@ -53,6 +53,13 @@ function seoKeywords(...groups) {
   return ordered.join(', ');
 }
 
+function renderInstanceTemplate(value, variables = {}, fallback = '') {
+  const template = String(value || fallback || '');
+  return template.replace(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g, (match, key) => (
+    Object.hasOwn(variables, key) ? String(variables[key]) : match
+  ));
+}
+
 module.exports = {
   escapeHtml,
   escapeJsonForHtml,
@@ -60,4 +67,5 @@ module.exports = {
   formatCount,
   renderStatsBreakdown,
   seoKeywords,
+  renderInstanceTemplate,
 };

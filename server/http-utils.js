@@ -33,7 +33,22 @@ function sendJson(res, statusCode, payload, headers = {}) {
   res.end(body);
 }
 
+function sendText(res, statusCode, text, contentType = 'text/plain; charset=utf-8') {
+  res.writeHead(statusCode, {
+    'content-type': contentType,
+    'cache-control': 'no-cache',
+    'content-length': Buffer.byteLength(text),
+  });
+  res.end(text);
+}
+
+function sendHtml(res, statusCode, html) {
+  sendText(res, statusCode, html, 'text/html; charset=utf-8');
+}
+
 module.exports = {
   readRequestBody,
+  sendHtml,
   sendJson,
+  sendText,
 };

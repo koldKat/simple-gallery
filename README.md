@@ -2,6 +2,39 @@
 
 Node.js and SQLite gallery application served by `server.js`.
 
+## Architecture
+
+`server.js` owns process lifecycle, shared runtime state, importer orchestration, and top-level request dispatch. Supporting concerns are grouped by responsibility:
+
+- `server/routes/` contains API dispatchers, including the Admin API.
+- `server/auth-service.js`, `server/settings-store.js`, and `server/view-tracker.js` own sessions, runtime settings, and deduplicated view counters.
+- `server/media-library.js`, `server/thumbnail-service.js`, `server/source-profile.js`, `server/source-parser.js`, and `server/import-network.js` own local media operations, thumbnail queueing, configured source policy and parsing, retries, downloads, and bounded concurrency.
+- `server/source-url-registry.js` owns saved and ignored source URLs plus library matching audits.
+- `server/import-state-store.js` translates importer model/gallery state to and from normalized database rows.
+- `server/import-library.js` owns importer manifests, source-to-folder matching, gallery numbering, and local sequence repair.
+- `server/source-model-loader.js` owns paginated source model discovery, missing-model filtering, and loaded-list state.
+- `server/gallery-transfer.js` owns full-image URL resolution, bounded downloads, foreground pauses, and partial transfer failures.
+- `server/import-progress.js` owns Admin import snapshots, bounded logs, and progress broadcast throttling.
+- `server/model-importer.js` owns one model's gallery discovery, persistence, downloads, and refresh decisions.
+- `server/import-runner.js` owns multi-model sequencing, Rescan All checkpoints, pause/stop, and resume behavior.
+- `server/gallery-verifier.js` owns known-gallery verification, destructive repair, and repaired-model refreshes.
+- `server/library-repository.js` owns model/gallery persistence plus favorite and seen-state queries.
+- `server/library-state.js` builds cached runtime library state and deduplicates scanned gallery summaries.
+- `server/library-scanner.js` owns gallery/model filesystem scans, aggregate storage totals, and cached-state refreshes.
+- `server/user-library.js` builds personalized state, gallery image payloads, and paginated Favorites responses.
+- `server/rescan-checkpoints.js` owns Rescan All duration metadata and resumable checkpoint recovery.
+- `server/import-errors.js` persists and broadcasts importer failures.
+- `server/admin-reporting.js` builds read-only view and user reports from live database and traffic state.
+- `server/db/`, `server/database-runtime.js`, `server/db-housekeeping.js`, and `server/backup.js` own the database connection, schema initialization, busy retries, runtime metrics, maintenance operations, periodic cleanup lifecycle, and backup retention.
+- `server/event-bus.js`, `server/traffic.js`, `server/page-renderer.js`, `server/sitemap.js`, `server/routes/site.js`, and `server/static-handler.js` own server-sent events, request accounting, public HTML/SEO, sitemap and public route dispatch, and static-file policy.
+- `server/auto-rescan-service.js` owns the scheduled Rescan All timer, retry lifecycle, and worker dispatch.
+- `server/worker-service.js` owns worker process creation, IPC request correlation, event transport, and shutdown; `server/worker-coordinator.js` owns import command dispatch and worker-state reconciliation.
+- `server/schedule.js`, `server/html-format.js`, and `server/route-paths.js` provide pure scheduling, formatting, and route helpers.
+
+The main browser entry point is `public/js/app.js`. Reusable browser controllers and pure helpers live beside it as ES modules, including `app-auth.js`, `app-backdrop.js`, `app-data.js`, `app-events.js`, `app-favorite-actions.js`, `app-favorites.js`, `app-gallery-cache.js`, `app-gallery-view.js`, `app-header.js`, `app-lightbox.js`, `app-model-navigation.js`, `app-navigation.js`, `app-preferences.js`, `app-preloader.js`, `app-seen-state.js`, `app-tooltips.js`, and `app-utils.js`. The HTML loads `app.js` as a module, and `app.js` remains responsible for application state and view orchestration.
+
+Keep modules dependency-injected where they need process state. A module should not open the database, start timers, or mutate global application state merely because it is imported. This keeps startup ownership visible in `server.js` and permits isolated tests without opening `gallery.db`.
+
 ## Running
 
 Install dependencies with `npm install`, then start the application with:
@@ -48,6 +81,8 @@ Authentication and compact unseen statistics are loaded before the full personal
 
 The Admin page does not embed source URLs or configured values in its HTML or JavaScript. Version, source URLs, schedule settings, application identity, content root, source profile, SEO profile, and runtime statistics are populated from the private Admin state endpoint after loading. Initial data fields use neutral empty or loading states.
 
+Admin HTML, APIs, scans, imports, and database maintenance are restricted to localhost requests. Public routes expose only gallery browsing, account actions, personalized state, favorites, seen state, view recording, sitemaps, and server-sent status updates.
+
 Auto Rescan All can be enabled for a selected 24-hour time and one or more weekdays. Installations without a saved weekday selection run every day, preserving the original schedule behavior.
 
 ### Application Version
@@ -61,3 +96,13 @@ For an established database, `app_settings.version_label` is the runtime value. 
 `gallery.db` is a live SQLite database. Starting the server can write to it during schema initialization, cleanup, traffic accounting, scheduled work, or normal requests.
 
 Do not run a second server against a synchronized copy and do not synchronize `gallery.db`, `gallery.db-wal`, or `gallery.db-shm` while the authoritative server is running. Sync application files separately and use a stopped-server copy or a database backup when moving database state.
+
+## Verification
+
+Run the isolated unit and integration suite with:
+
+```bash
+npm test
+```
+
+The tests use in-memory or temporary databases and do not open the repository's live `gallery.db`.
