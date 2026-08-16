@@ -738,8 +738,16 @@ input:disabled {
   font-weight: 700;
 }
 
-.admin-weekday-picker {
+.admin-schedule-row {
   grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.admin-weekday-picker {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -817,6 +825,11 @@ input:disabled {
   padding: 0 0.9rem 0.9rem;
   color: var(--muted);
   font-size: 0.8rem;
+}
+
+.admin-schedule-row .admin-settings-sub {
+  padding: 0;
+  line-height: 1.35;
 }
 
 .admin-instance-form {
@@ -2304,6 +2317,10 @@ body.has-gallery-backdrop .content {
 
   .admin-runtime-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-schedule-row {
+    grid-template-columns: 1fr;
   }
 
   .admin-weekday-picker {

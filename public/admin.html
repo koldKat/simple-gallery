@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gallery Admin</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="/css/style.css?v=52">
+  <link rel="stylesheet" href="/css/style.css?v=53">
 </head>
 <body>
   <div class="app-shell admin-shell">
@@ -76,21 +76,23 @@
             </div>
           </div>
           <button id="save-settings-btn" type="submit">Save</button>
-          <div class="admin-weekday-picker" role="group" aria-label="Auto Rescan All days">
-            <span>Run on</span>
-            <label><input type="checkbox" name="auto-rescan-day" value="1"><span>Mon</span></label>
-            <label><input type="checkbox" name="auto-rescan-day" value="2"><span>Tue</span></label>
-            <label><input type="checkbox" name="auto-rescan-day" value="3"><span>Wed</span></label>
-            <label><input type="checkbox" name="auto-rescan-day" value="4"><span>Thu</span></label>
-            <label><input type="checkbox" name="auto-rescan-day" value="5"><span>Fri</span></label>
-            <label><input type="checkbox" name="auto-rescan-day" value="6"><span>Sat</span></label>
-            <label><input type="checkbox" name="auto-rescan-day" value="0"><span>Sun</span></label>
+          <div class="admin-schedule-row">
+            <div class="admin-settings-sub">
+              <div id="auto-rescan-next">Loading schedule</div>
+              <div id="last-rescan-all-duration">Loading rescan history</div>
+            </div>
+            <div class="admin-weekday-picker" role="group" aria-label="Auto Rescan All days">
+              <span>Run on</span>
+              <label><input type="checkbox" name="auto-rescan-day" value="1"><span>Mon</span></label>
+              <label><input type="checkbox" name="auto-rescan-day" value="2"><span>Tue</span></label>
+              <label><input type="checkbox" name="auto-rescan-day" value="3"><span>Wed</span></label>
+              <label><input type="checkbox" name="auto-rescan-day" value="4"><span>Thu</span></label>
+              <label><input type="checkbox" name="auto-rescan-day" value="5"><span>Fri</span></label>
+              <label><input type="checkbox" name="auto-rescan-day" value="6"><span>Sat</span></label>
+              <label><input type="checkbox" name="auto-rescan-day" value="0"><span>Sun</span></label>
+            </div>
           </div>
         </form>
-        <div class="admin-settings-sub">
-          <div id="auto-rescan-next">Loading schedule</div>
-          <div id="last-rescan-all-duration">Loading rescan history</div>
-        </div>
       </section>
 
       <section class="admin-panel">
