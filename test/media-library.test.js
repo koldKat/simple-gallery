@@ -37,6 +37,7 @@ test('media names retain the established normalization rules', () => {
   assert.equal(normalizeModelName('jane__doe-smith'), 'Jane Doe Smith');
   assert.equal(normalizeModelName(''), 'Model');
   assert.equal(sanitizeFileBase(' Image #12.JPG '), 'image-12-jpg');
+  assert.equal(sanitizeFileBase('x'.repeat(300)).length, 160);
 });
 
 test('directory and image discovery is filtered and naturally sorted', (t) => {

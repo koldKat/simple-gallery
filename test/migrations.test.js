@@ -32,6 +32,7 @@ test('gallery source migration removes the obsolete global uniqueness constraint
       id INTEGER PRIMARY KEY,
       model_id INTEGER NOT NULL REFERENCES models(id) ON DELETE CASCADE,
       source_url TEXT UNIQUE,
+      source_provider TEXT NOT NULL DEFAULT 'primary',
       title TEXT NOT NULL DEFAULT '',
       folder TEXT NOT NULL,
       image_count INTEGER NOT NULL DEFAULT 0,
@@ -44,8 +45,8 @@ test('gallery source migration removes the obsolete global uniqueness constraint
     );
     INSERT INTO models VALUES (1), (2);
     INSERT INTO galleries
-      (id, model_id, source_url, title, folder, image_count, status, created_at)
-    VALUES (10, 1, 'https://example.test/gallery', 'One', '001', 4, 'imported', 'now');
+      (id, model_id, source_url, source_provider, title, folder, image_count, status, created_at)
+    VALUES (10, 1, 'https://example.test/gallery', 'direct', 'One', '001', 4, 'imported', 'now');
   `);
 
   service(db).migrateGallerySourceUrlUniqueness();
@@ -55,8 +56,8 @@ test('gallery source migration removes the obsolete global uniqueness constraint
   `).run();
   assert.equal(db.prepare('SELECT COUNT(*) AS count FROM galleries').get().count, 2);
   assert.deepEqual(
-    db.prepare('SELECT cover_name, image_bytes, thumb_bytes FROM galleries WHERE id = 10').get(),
-    { cover_name: null, image_bytes: 0, thumb_bytes: 0 }
+    db.prepare('SELECT source_provider, cover_name, image_bytes, thumb_bytes FROM galleries WHERE id = 10').get(),
+    { source_provider: 'direct', cover_name: null, image_bytes: 0, thumb_bytes: 0 }
   );
   db.close();
 });
@@ -70,8 +71,10 @@ test('column migrations upgrade old user and gallery tables idempotently', () =>
   const migrations = service(db);
   migrations.migrateUserPreferenceColumns();
   migrations.migrateGalleryStorageColumns();
+  migrations.migrateGalleryProviderColumn();
   migrations.migrateUserPreferenceColumns();
   migrations.migrateGalleryStorageColumns();
+  migrations.migrateGalleryProviderColumn();
 
   assert.deepEqual(
     db.prepare('PRAGMA table_info(users)').all().map(column => column.name),
@@ -79,7 +82,7 @@ test('column migrations upgrade old user and gallery tables idempotently', () =>
   );
   assert.deepEqual(
     db.prepare('PRAGMA table_info(galleries)').all().map(column => column.name),
-    ['id', 'cover_name', 'image_bytes', 'thumb_bytes']
+    ['id', 'cover_name', 'image_bytes', 'thumb_bytes', 'source_provider']
   );
   db.close();
 });

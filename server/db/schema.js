@@ -62,6 +62,7 @@ function initializeSchema({ db, withBusyRetry, defaultVersionLabel, nowIso }) {
       id INTEGER PRIMARY KEY,
       model_id INTEGER NOT NULL REFERENCES models(id) ON DELETE CASCADE,
       source_url TEXT,
+      source_provider TEXT NOT NULL DEFAULT 'primary',
       title TEXT NOT NULL DEFAULT '',
       folder TEXT NOT NULL,
       image_count INTEGER NOT NULL DEFAULT 0,

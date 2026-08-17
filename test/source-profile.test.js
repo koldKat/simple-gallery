@@ -27,6 +27,30 @@ test('source profiles normalize hosts, path segments, arrays, and defaults', () 
   assert.deepEqual(profile.excludedGalleryPathPrefixes, ['/skip']);
 });
 
+test('source profiles normalize configured direct gallery providers', () => {
+  const profile = service({
+    galleryProviders: [{
+      id: 'Example Direct',
+      allowedHosts: ['Gallery.Example'],
+      allowedImageHosts: ['Images.Example'],
+      galleryPathPattern: '^/gallery/',
+      imageLinkClass: 'full-image',
+    }],
+  }).get();
+
+  assert.deepEqual(profile.galleryProviders, [{
+    id: 'example-direct',
+    type: 'direct-images',
+    allowedHosts: ['gallery.example'],
+    allowedImageHosts: ['images.example'],
+    galleryPathPattern: '^/gallery/',
+    imageLinkClass: 'full-image',
+    imageUrlAttribute: 'href',
+    titleSuffixPattern: '',
+    referer: '',
+  }]);
+});
+
 test('host authorization accepts the configured host and its subdomains only', () => {
   const source = service({ allowedHosts: ['example.com'] });
 

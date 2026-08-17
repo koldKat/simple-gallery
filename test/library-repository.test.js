@@ -45,6 +45,7 @@ test('model and gallery upserts preserve update semantics and storage metadata',
   const galleryId = context.repository.upsertGalleryRecord('alpha-model', 'Alpha', '001', {
     title: 'First',
     sourceUrl: 'HTTPS://SOURCE.TEST/GALLERY/001/',
+    sourceProvider: 'direct',
     imageCount: 3,
     coverName: 'cover.jpg',
     imageBytes: 100,
@@ -54,6 +55,7 @@ test('model and gallery upserts preserve update semantics and storage metadata',
   context.setNow('2026-08-17T10:00:00.000Z');
   context.repository.upsertGalleryRecord('alpha-model', 'Alpha Updated', '001', {
     title: 'Updated',
+    sourceUrl: 'https://source.test/gallery/001',
     count: 4,
     touchModelUpdatedAt: false,
   });
@@ -63,6 +65,7 @@ test('model and gallery upserts preserve update semantics and storage metadata',
   assert.deepEqual(model, { name: 'Alpha Updated', updated_at: '2026-08-16T10:00:00.000Z' });
   assert.equal(gallery.id, galleryId);
   assert.equal(gallery.source_url, 'https://source.test/gallery/001');
+  assert.equal(gallery.source_provider, 'direct');
   assert.equal(gallery.image_count, 4);
   assert.equal(gallery.cover_name, 'cover.jpg');
   assert.equal(gallery.image_bytes, 100);

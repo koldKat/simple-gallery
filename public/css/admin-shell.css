@@ -175,6 +175,60 @@
   grid-template-columns: minmax(0, 1fr) auto auto auto;
 }
 
+.admin-form-direct {
+  grid-template-columns: minmax(180px, 0.45fr) minmax(280px, 1fr) auto;
+}
+
+.model-autocomplete {
+  position: relative;
+  min-width: 0;
+}
+
+.model-autocomplete input {
+  width: 100%;
+}
+
+.model-autocomplete-options {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #12161c;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.42);
+}
+
+.model-autocomplete-option {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.42rem 0.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.model-autocomplete-option:hover,
+.model-autocomplete-option.is-active {
+  background: rgba(95, 183, 178, 0.14);
+}
+
+.model-autocomplete-folder {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .admin-time-picker {
   display: inline-flex;
   align-items: center;

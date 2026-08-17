@@ -30,6 +30,12 @@ const els = {
   lastRescanAllDuration: document.querySelector('#last-rescan-all-duration'),
   saveSettings: document.querySelector('#save-settings-btn'),
   form: document.querySelector('#import-form'),
+  directGalleryForm: document.querySelector('#direct-gallery-form'),
+  directGalleryModelCombobox: document.querySelector('#direct-gallery-model-combobox'),
+  directGalleryModel: document.querySelector('#direct-gallery-model'),
+  directGalleryModelOptions: document.querySelector('#direct-gallery-model-options'),
+  directGalleryUrl: document.querySelector('#direct-gallery-url'),
+  directGalleryButton: document.querySelector('#direct-gallery-btn'),
   url: document.querySelector('#model-url'),
   allModelsUrl: document.querySelector('#all-models-url'),
   button: document.querySelector('#import-btn'),
@@ -95,6 +101,8 @@ let viewStatsResizeObserver = null;
 let viewStatsRefreshInFlight = false;
 let runtimeRefreshInFlight = false;
 let adminLibraryRoot = '';
+let directGalleryModelOptions = [];
+let directGalleryModelOptionIndex = -1;
 
 function setAdminPanel(panel) {
   adminPanel = panel === 'profile' ? 'profile' : panel === 'errors' ? 'errors' : panel === 'users' ? 'users' : panel === 'audit' ? 'audit' : 'main';
@@ -223,6 +231,63 @@ function renderAppSettings(libraryState) {
     ? `Next auto rescan: ${formatDateTime(app.nextAutoRescanAt)}`
     : 'Next auto rescan: not scheduled';
   renderLastRescanAll(app);
+}
+
+function closeDirectGalleryModelOptions() {
+  directGalleryModelOptionIndex = -1;
+  els.directGalleryModelOptions.hidden = true;
+  els.directGalleryModel.setAttribute('aria-expanded', 'false');
+}
+
+function selectDirectGalleryModelOption(option) {
+  els.directGalleryModel.value = option.folder;
+  closeDirectGalleryModelOptions();
+  els.directGalleryModel.focus();
+}
+
+function renderDirectGalleryModelOptions() {
+  const query = els.directGalleryModel.value.trim().toLowerCase();
+  const matches = directGalleryModelOptions
+    .filter(option => !query || option.name.toLowerCase().includes(query) || option.folder.toLowerCase().includes(query))
+    .sort((a, b) => {
+      const aStarts = a.name.toLowerCase().startsWith(query) || a.folder.toLowerCase().startsWith(query);
+      const bStarts = b.name.toLowerCase().startsWith(query) || b.folder.toLowerCase().startsWith(query);
+      return Number(bStarts) - Number(aStarts) || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    })
+    .slice(0, 12);
+  els.directGalleryModelOptions.replaceChildren();
+  directGalleryModelOptionIndex = matches.length ? Math.min(directGalleryModelOptionIndex, matches.length - 1) : -1;
+  for (const [index, option] of matches.entries()) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `model-autocomplete-option${index === directGalleryModelOptionIndex ? ' is-active' : ''}`;
+    button.setAttribute('role', 'option');
+    button.setAttribute('aria-selected', index === directGalleryModelOptionIndex ? 'true' : 'false');
+    const name = document.createElement('span');
+    name.textContent = option.name;
+    button.append(name);
+    if (option.folder !== option.name) {
+      const folder = document.createElement('span');
+      folder.className = 'model-autocomplete-folder';
+      folder.textContent = option.folder;
+      button.append(folder);
+    }
+    button.addEventListener('mousedown', event => event.preventDefault());
+    button.addEventListener('click', () => selectDirectGalleryModelOption(option));
+    els.directGalleryModelOptions.append(button);
+  }
+  els.directGalleryModelOptions.hidden = !matches.length;
+  els.directGalleryModel.setAttribute('aria-expanded', matches.length ? 'true' : 'false');
+}
+
+async function refreshDirectGalleryModelOptions() {
+  const response = await fetch('/api/admin/model-options', { cache: 'no-store' });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error || 'Failed to load model choices.');
+  directGalleryModelOptions = (payload.models || []).map(model => ({
+    name: String(model.name || model.folder || ''),
+    folder: String(model.folder || ''),
+  })).filter(model => model.folder);
 }
 
 function normalizeSchedulerPart(value, maximum) {
@@ -365,6 +430,7 @@ async function refreshLibraryTotals() {
 }
 
 function setImportControlsDisabled(disabled) {
+  if (disabled) closeDirectGalleryModelOptions();
   els.button.disabled = disabled;
   els.load.disabled = disabled;
   els.findMissingModels.disabled = disabled;
@@ -378,6 +444,9 @@ function setImportControlsDisabled(disabled) {
   els.auditUrls.disabled = disabled;
   els.url.disabled = disabled;
   els.allModelsUrl.disabled = disabled;
+  els.directGalleryModel.disabled = disabled;
+  els.directGalleryUrl.disabled = disabled;
+  els.directGalleryButton.disabled = disabled;
   els.vacuumDb.disabled = disabled;
 }
 
@@ -782,7 +851,7 @@ function renderImport(snapshot) {
 }
 
 async function loadStatus() {
-  const [importResponse, stateResponse, loadedResponse, errorsResponse, viewStatsResponse, usersResponse, auditResponse, ignoredResponse] = await Promise.all([
+  const [importResponse, stateResponse, loadedResponse, errorsResponse, viewStatsResponse, usersResponse, auditResponse, ignoredResponse, modelOptionsResponse] = await Promise.all([
     fetch('/api/admin/import-status', { cache: 'no-store' }),
     fetch('/api/admin/state', { cache: 'no-store' }),
     fetch('/api/admin/loaded-models', { cache: 'no-store' }),
@@ -791,6 +860,7 @@ async function loadStatus() {
     fetch('/api/admin/users', { cache: 'no-store' }),
     fetch('/api/admin/url-audit', { cache: 'no-store' }),
     fetch('/api/admin/ignored-model-urls', { cache: 'no-store' }),
+    fetch('/api/admin/model-options', { cache: 'no-store' }),
   ]);
   renderImport(await importResponse.json());
   const libraryState = await stateResponse.json();
@@ -801,6 +871,13 @@ async function loadStatus() {
   renderViewStats(await viewStatsResponse.json());
   renderUsers(await usersResponse.json());
   renderAuditView(await auditResponse.json(), await ignoredResponse.json());
+  const modelOptions = await modelOptionsResponse.json();
+  if (modelOptionsResponse.ok) {
+    directGalleryModelOptions = (modelOptions.models || []).map(model => ({
+      name: String(model.name || model.folder || ''),
+      folder: String(model.folder || ''),
+    })).filter(model => model.folder);
+  }
   await refreshScannedUrlCount();
 }
 
@@ -936,6 +1013,64 @@ els.form.addEventListener('submit', async (event) => {
     els.error.textContent = error.message || 'Import failed.';
     setImportControlsDisabled(importActive);
   }
+});
+
+els.directGalleryForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!beginActiveRun()) return;
+  els.error.textContent = '';
+  try {
+    await clearImportErrors();
+    const response = await fetch('/api/admin/import-gallery', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: els.directGalleryModel.value.trim(),
+        url: els.directGalleryUrl.value.trim(),
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || payload.message || 'Gallery import failed.');
+    renderImport(payload);
+    await refreshLibraryTotals();
+  } catch (error) {
+    importActive = false;
+    els.error.textContent = error.message || 'Gallery import failed.';
+    setImportControlsDisabled(false);
+  }
+});
+
+els.directGalleryModel.addEventListener('focus', renderDirectGalleryModelOptions);
+els.directGalleryModel.addEventListener('input', () => {
+  directGalleryModelOptionIndex = -1;
+  renderDirectGalleryModelOptions();
+});
+els.directGalleryModel.addEventListener('keydown', event => {
+  const options = Array.from(els.directGalleryModelOptions.querySelectorAll('.model-autocomplete-option'));
+  if (event.key === 'Escape') {
+    closeDirectGalleryModelOptions();
+    return;
+  }
+  if (event.key === 'Enter' && directGalleryModelOptionIndex >= 0) {
+    event.preventDefault();
+    options[directGalleryModelOptionIndex]?.click();
+    return;
+  }
+  if (!['ArrowDown', 'ArrowUp'].includes(event.key)) return;
+  event.preventDefault();
+  if (els.directGalleryModelOptions.hidden) renderDirectGalleryModelOptions();
+  const nextOptions = Array.from(els.directGalleryModelOptions.querySelectorAll('.model-autocomplete-option'));
+  if (!nextOptions.length) return;
+  const direction = event.key === 'ArrowDown' ? 1 : -1;
+  directGalleryModelOptionIndex = (directGalleryModelOptionIndex + direction + nextOptions.length) % nextOptions.length;
+  for (const [index, option] of nextOptions.entries()) {
+    option.classList.toggle('is-active', index === directGalleryModelOptionIndex);
+    option.setAttribute('aria-selected', index === directGalleryModelOptionIndex ? 'true' : 'false');
+  }
+  nextOptions[directGalleryModelOptionIndex].scrollIntoView({ block: 'nearest' });
+});
+document.addEventListener('pointerdown', event => {
+  if (!els.directGalleryModelCombobox.contains(event.target)) closeDirectGalleryModelOptions();
 });
 
 els.importLoaded.addEventListener('click', async () => {
@@ -1262,6 +1397,7 @@ if (window.EventSource) {
     if (!snapshot.active) {
       refreshLibraryTotals();
       refreshScannedUrlCount();
+      refreshDirectGalleryModelOptions().catch(() => {});
     }
   });
   source.addEventListener('scanned-urls', event => renderScannedUrlCount(JSON.parse(event.data)));

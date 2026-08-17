@@ -26,16 +26,55 @@ function createGalleryVerifier(ctx) {
     recordImportError,
     refreshModelInState,
     importSnapshot,
+    galleryProviderRegistry,
   } = ctx;
 
-  async function repairGallery(row, detailUrls, galleryPath) {
+  function providerFor(row) {
+    const providerId = String(row.source_provider || 'primary').trim().toLowerCase() || 'primary';
+    if (providerId === 'primary') {
+      return isVerifiableGalleryUrl(row.source_url) ? { id: 'primary', type: 'detail-pages' } : null;
+    }
+    try {
+      return galleryProviderRegistry.identify(row.source_url, providerId);
+    } catch {
+      return null;
+    }
+  }
+
+  async function remoteGallery(row, provider, galleryHtml) {
+    if (provider.id === 'primary') {
+      const detailUrls = extractDetailUrls(galleryHtml, row.source_url);
+      return { count: detailUrls.length, detailUrls, directItems: null };
+    }
+    const extracted = galleryProviderRegistry.extract(provider, galleryHtml, row.source_url);
+    return {
+      count: extracted.imageUrls.length,
+      detailUrls: null,
+      directItems: extracted.imageUrls.map((imageUrl, index) => ({
+        index,
+        imageUrl,
+        referer: extracted.referer,
+        allowedHosts: extracted.allowedImageHosts,
+      })),
+    };
+  }
+
+  async function repairGallery(row, remote, galleryPath) {
     const job = getJob();
+    const parentPath = path.dirname(galleryPath);
+    const galleryName = path.basename(galleryPath);
+    const stagingPath = path.join(parentPath, `.gallery-repair-${galleryName}-${process.pid}-${Date.now()}`);
+    const backupPath = path.join(parentPath, `.gallery-previous-${galleryName}-${process.pid}-${Date.now()}`);
+    let swapped = false;
+    let committed = false;
     activeImportGalleryPaths.add(galleryPath);
     try {
-      fs.rmSync(galleryPath, { recursive: true, force: true });
-      mkdirp(galleryPath);
+      fs.rmSync(stagingPath, { recursive: true, force: true });
+      mkdirp(stagingPath);
 
-      const resolved = await resolveGalleryImageUrls(detailUrls);
+      const resolved = remote.directItems
+        ? { successes: remote.directItems, failures: [] }
+        : await resolveGalleryImageUrls(remote.detailUrls || []);
       for (const failure of resolved.failures) {
         job.totals.errors += 1;
         recordImportError({
@@ -46,11 +85,11 @@ function createGalleryVerifier(ctx) {
         });
       }
 
-      job.current.images = detailUrls.length;
+      job.current.images = remote.count;
       job.current.imported = 0;
       const downloads = await downloadGalleryImagesPartial(
         resolved.successes,
-        galleryPath,
+        stagingPath,
         row.title,
         (imported, total) => {
           job.current.imported = imported;
@@ -67,12 +106,25 @@ function createGalleryVerifier(ctx) {
           message: `Repair image download failed: ${failure.message}`,
         });
       }
-      if (!downloads.downloaded.length) throw new Error('No images could be repaired for this gallery.');
+      if (resolved.failures.length || downloads.failures.length || downloads.downloaded.length !== remote.count) {
+        throw new Error(`Repair downloaded ${downloads.downloaded.length}/${remote.count} images; existing files were retained.`);
+      }
+
+      if (fs.existsSync(galleryPath)) fs.renameSync(galleryPath, backupPath);
+      try {
+        fs.renameSync(stagingPath, galleryPath);
+        swapped = true;
+      } catch (error) {
+        if (fs.existsSync(backupPath) && !fs.existsSync(galleryPath)) fs.renameSync(backupPath, galleryPath);
+        throw error;
+      }
 
       db.prepare('UPDATE galleries SET image_count = ?, last_seen_at = ? WHERE id = ?')
         .run(downloads.downloaded.length, nowIso(), row.gallery_id);
+      committed = true;
+      fs.rmSync(backupPath, { recursive: true, force: true });
       job.totals.galleriesImported += 1;
-      updateImport(`Repaired ${row.model_name} / ${row.gallery_folder}: downloaded ${downloads.downloaded.length}/${detailUrls.length} images.`, {}, { force: true });
+      updateImport(`Repaired ${row.model_name} / ${row.gallery_folder}: downloaded ${downloads.downloaded.length}/${remote.count} images.`, {}, { force: true });
       return true;
     } catch (error) {
       job.totals.errors += 1;
@@ -84,6 +136,12 @@ function createGalleryVerifier(ctx) {
       });
       return false;
     } finally {
+      if (swapped && !committed) {
+        fs.rmSync(galleryPath, { recursive: true, force: true });
+        if (fs.existsSync(backupPath)) fs.renameSync(backupPath, galleryPath);
+      }
+      fs.rmSync(stagingPath, { recursive: true, force: true });
+      if (committed) fs.rmSync(backupPath, { recursive: true, force: true });
       activeImportGalleryPaths.delete(galleryPath);
     }
   }
@@ -99,6 +157,7 @@ function createGalleryVerifier(ctx) {
         galleries.id AS gallery_id,
         galleries.folder AS gallery_folder,
         galleries.source_url,
+        galleries.source_provider,
         galleries.title,
         galleries.image_count,
         models.name AS model_name,
@@ -110,7 +169,7 @@ function createGalleryVerifier(ctx) {
       WHERE galleries.source_url IS NOT NULL AND galleries.source_url != ''
       GROUP BY galleries.id
       ORDER BY models.folder, galleries.folder
-    `).all().filter(row => isVerifiableGalleryUrl(row.source_url));
+    `).all();
 
     const job = {
       active: true,
@@ -163,10 +222,21 @@ function createGalleryVerifier(ctx) {
         imported: 0,
       };
 
+      const provider = providerFor(row);
+      if (!provider) {
+        job.totals.galleriesProcessed += 1;
+        job.totals.galleriesSkipped += 1;
+        updateImport(`Skipped ${row.model_name} / ${row.gallery_folder}: provider ${row.source_provider || 'primary'} is not configured for verification.`, {}, { force: true });
+        continue;
+      }
+
       try {
-        const galleryHtml = await fetchText(row.source_url);
-        const detailUrls = extractDetailUrls(galleryHtml, row.source_url);
-        const remoteCount = detailUrls.length;
+        const galleryHtml = await fetchText(
+          row.source_url,
+          provider.id === 'primary' ? {} : { allowedHosts: provider.allowedHosts }
+        );
+        const remote = await remoteGallery(row, provider, galleryHtml);
+        const remoteCount = remote.count;
         const galleryPath = path.join(mediaRoot(), row.model_folder, row.gallery_folder);
         const localStats = galleryStorageStats(galleryPath);
         const localCount = localStats.imageNames.length;
@@ -177,7 +247,7 @@ function createGalleryVerifier(ctx) {
 
         if (remoteCount !== localCount) {
           updateImport(`Repairing ${row.model_name} / ${row.gallery_folder}: local ${localCount}, remote ${remoteCount}`, {}, { force: true });
-          if (await repairGallery(row, detailUrls, galleryPath)) repairedModelFolders.add(row.model_folder);
+          if (await repairGallery(row, remote, galleryPath)) repairedModelFolders.add(row.model_folder);
         } else if (localStats.missingThumbs > 0) {
           repairedModelFolders.add(row.model_folder);
         }
@@ -224,7 +294,7 @@ function createGalleryVerifier(ctx) {
     return importSnapshot();
   }
 
-  return { verify, repairGallery };
+  return { verify, repairGallery, providerFor, remoteGallery };
 }
 
 module.exports = { createGalleryVerifier };

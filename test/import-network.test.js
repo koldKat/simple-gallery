@@ -11,11 +11,12 @@ const {
   mapLimit,
 } = require('../server/import-network');
 
-function response({ status = 200, headers = {}, text = '', bytes = [] } = {}) {
+function response({ status = 200, headers = {}, text = '', bytes = [], url = '' } = {}) {
   const normalized = new Map(Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value]));
   return {
     ok: status >= 200 && status < 300,
     status,
+    url,
     headers: { get: key => normalized.get(String(key).toLowerCase()) || null },
     text: async () => text,
     arrayBuffer: async () => Uint8Array.from(bytes).buffer,
@@ -67,6 +68,21 @@ test('terminal fetch errors report attempts, status, and URL', async () => {
   );
 });
 
+test('page fetches reject unapproved initial and redirected hosts', async () => {
+  const redirected = networkFor(async () => response({
+    url: 'https://foreign.example/page',
+    text: 'loaded',
+  }));
+  await assert.rejects(
+    redirected.fetchText('https://example.test/page', { allowedHosts: ['example.test'] }),
+    /Page fetch redirect uses an unapproved URL/
+  );
+  await assert.rejects(
+    redirected.fetchText('ftp://example.test/page', { allowedHosts: ['example.test'] }),
+    /Page fetch uses an unapproved URL/
+  );
+});
+
 test('mapLimit preserves order while bounding active work', async () => {
   let active = 0;
   let maximum = 0;
@@ -105,4 +121,17 @@ test('image extension falls back to an allowed URL extension', () => {
     '.webp'
   );
   assert.equal(network.extensionFromResponse('https://example.test/image/file.bin', response()), '.jpg');
+});
+
+test('image downloads reject redirects outside provider-approved hosts', async () => {
+  const network = networkFor(async () => response({
+    url: 'https://unapproved.example/image.jpg',
+    headers: { 'content-type': 'image/jpeg' },
+  }));
+  await assert.rejects(
+    network.downloadImage('https://images.example/image.jpg', '/tmp/unused-image', {
+      allowedHosts: ['images.example'],
+    }),
+    /Image download redirect uses an unapproved URL/
+  );
 });

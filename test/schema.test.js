@@ -93,6 +93,7 @@ test('schema relationships cascade user and model records as designed', () => {
   `).run();
   db.prepare("INSERT INTO models (id, name, folder, created_at, updated_at) VALUES (2, 'Model', 'model', 'now', 'now')").run();
   db.prepare("INSERT INTO galleries (id, model_id, folder, created_at) VALUES (3, 2, '001', 'now')").run();
+  assert.equal(db.prepare('SELECT source_provider FROM galleries WHERE id = 3').get().source_provider, 'primary');
   db.prepare("INSERT INTO image_seen (user_id, gallery_id, image_name, seen_at) VALUES (1, 3, 'one.jpg', 'now')").run();
 
   db.prepare('DELETE FROM models WHERE id = 2').run();

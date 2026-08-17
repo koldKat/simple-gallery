@@ -100,3 +100,14 @@ test('user reporting counts only unexpired sessions and preserves ordering', () 
   ]);
   context.db.close();
 });
+
+test('model options expose existing names and folders in stable order', () => {
+  const context = fixture();
+  assert.deepEqual(context.reporting.modelOptions(), {
+    models: [
+      { name: 'One', folder: 'one' },
+      { name: 'Two', folder: 'two' },
+    ],
+  });
+  context.db.close();
+});

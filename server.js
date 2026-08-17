@@ -65,6 +65,8 @@ const { createWorkerService } = require('./server/worker-service');
 const { createWorkerCoordinator } = require('./server/worker-coordinator');
 const { createSourceProfileService } = require('./server/source-profile');
 const { createServerEventBus } = require('./server/event-bus');
+const { createGalleryProviderRegistry } = require('./server/gallery-provider-registry');
+const { createDirectGalleryImporter } = require('./server/direct-gallery-importer');
 const { createSourceModelLoader } = require('./server/source-model-loader');
 const { createGalleryTransfer } = require('./server/gallery-transfer');
 const { createImportProgress } = require('./server/import-progress');
@@ -187,6 +189,10 @@ const {
   requireProfile: requireSourceProfile,
   sourceSlug,
 } = sourceProfileService;
+const galleryProviderRegistry = createGalleryProviderRegistry({
+  getProfile: sourceProfile,
+  canonicalRemoteUrl,
+});
 const autoRescanService = createAutoRescanService({
   getSetting: appSetting,
   normalizeTime,
@@ -292,6 +298,7 @@ const {
   migrateGallerySourceUrlUniqueness,
   repairRenamedGalleryForeignKeys,
   migrateGalleryStorageColumns,
+  migrateGalleryProviderColumn,
   migrateUserPreferenceColumns,
   backfillGalleryStorageColumns,
   repairShiftedRecoveredGalleryRows,
@@ -405,6 +412,7 @@ const {
 const {
   viewStats: viewStatsResponse,
   users: adminUsersResponse,
+  modelOptions: adminModelOptionsResponse,
 } = createAdminReporting({
   db,
   getRuntimeStats: runtimeStats,
@@ -723,6 +731,34 @@ const { verify: verifyKnownGalleries } = createGalleryVerifier({
   recordImportError,
   refreshModelInState,
   importSnapshot,
+  galleryProviderRegistry,
+});
+const { importGallery: importDirectGallery } = createDirectGalleryImporter({
+  db,
+  getJob: () => importJob,
+  setJob: job => { importJob = job; },
+  resetProgressThrottle: importProgress.resetThrottle,
+  clearImportErrors,
+  galleryProviderRegistry,
+  canonicalRemoteUrl,
+  fetchText,
+  mediaRoot,
+  mkdirp,
+  loadImportDb,
+  saveImportDb,
+  getImportModelRecord,
+  hydrateImportRecordFromManifests,
+  findExistingGalleryForSource,
+  nextGalleryName,
+  rememberImportedGallery,
+  activeImportGalleryPaths,
+  downloadGalleryImagesPartial,
+  galleryStorageStats,
+  refreshModelInState,
+  recordImportError,
+  updateImport,
+  importSnapshot,
+  nowIso,
 });
 const workerCoordinator = createWorkerCoordinator({
   workerService,
@@ -751,6 +787,7 @@ const workerCoordinator = createWorkerCoordinator({
   importAllScannedUrls,
   resumeRescanAll,
   verifyKnownGalleries,
+  importDirectGallery,
 });
 
 function nowIso() {
@@ -797,6 +834,7 @@ console.log('[startup] Running database migrations...');
 migrateGallerySourceUrlUniqueness();
 migrateUserPreferenceColumns();
 migrateGalleryStorageColumns();
+migrateGalleryProviderColumn();
 repairRenamedGalleryForeignKeys();
 repairShiftedRecoveredGalleryRows();
 if (!IS_WORKER) {
@@ -942,6 +980,7 @@ const adminRouteContext = {
   syncScannedUrlsFile,
   viewStatsResponse,
   adminUsersResponse,
+  adminModelOptionsResponse,
   loadImportErrors,
   dismissImportError,
   clearImportErrors,

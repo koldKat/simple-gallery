@@ -17,14 +17,16 @@ Node.js and SQLite gallery application served by `server.js`.
 - `server/import-progress.js` owns Admin import snapshots, bounded logs, and progress broadcast throttling.
 - `server/model-importer.js` owns one model's gallery discovery, persistence, downloads, and refresh decisions.
 - `server/import-runner.js` owns multi-model sequencing, Rescan All checkpoints, pause/stop, and resume behavior.
-- `server/gallery-verifier.js` owns known-gallery verification, destructive repair, and repaired-model refreshes.
+- `server/gallery-verifier.js` owns known-gallery verification, staged all-or-nothing repair, and repaired-model refreshes.
+- `server/gallery-provider-registry.js` validates configured non-primary gallery providers and extracts allowlisted direct-image links.
+- `server/direct-gallery-importer.js` imports one configured external gallery into an existing model without enrolling it in primary-source discovery.
 - `server/library-repository.js` owns model/gallery persistence plus favorite and seen-state queries.
 - `server/library-state.js` builds cached runtime library state and deduplicates scanned gallery summaries.
 - `server/library-scanner.js` owns gallery/model filesystem scans, aggregate storage totals, and cached-state refreshes.
 - `server/user-library.js` builds personalized state, gallery image payloads, and paginated Favorites responses.
 - `server/rescan-checkpoints.js` owns Rescan All duration metadata and resumable checkpoint recovery.
 - `server/import-errors.js` persists and broadcasts importer failures.
-- `server/admin-reporting.js` builds read-only view and user reports from live database and traffic state.
+- `server/admin-reporting.js` builds read-only view and user reports plus Admin model choices from live database and traffic state.
 - `server/db/`, `server/database-runtime.js`, `server/db-housekeeping.js`, and `server/backup.js` own the database connection, schema initialization, busy retries, runtime metrics, maintenance operations, periodic cleanup lifecycle, and backup retention.
 - `server/event-bus.js`, `server/traffic.js`, `server/page-renderer.js`, `server/sitemap.js`, `server/routes/site.js`, and `server/static-handler.js` own server-sent events, request accounting, public HTML/SEO, sitemap and public route dispatch, and static-file policy.
 - `server/auto-rescan-service.js` owns the scheduled Rescan All timer, retry lifecycle, and worker dispatch.
@@ -57,6 +59,32 @@ Deployment-specific values live in the SQLite `app_settings` table and are edita
 - SEO Profile JSON configures titles, descriptions, and keywords using placeholders such as `{appName}`, `{modelName}`, `{galleryName}`, `{models}`, `{galleries}`, and `{images}`.
 
 Source and SEO profiles are Admin-only data and are not included in the public state endpoint. A fresh installation must configure a source profile before importing.
+
+### Additional Gallery Providers
+
+The Source Profile may contain a `galleryProviders` array for importing individual galleries from additional sites. Provider configuration remains deployment data rather than repository code. No provider definitions are bundled with the application, so deploying the code alone does not configure any additional source. The currently supported provider type is `direct-images`, which extracts full-image URLs from matching anchor elements.
+
+```json
+{
+  "galleryProviders": [
+    {
+      "id": "example-direct",
+      "type": "direct-images",
+      "allowedHosts": ["gallery.example"],
+      "allowedImageHosts": ["images.example"],
+      "galleryPathPattern": "^/galleries/[^/]+/?$",
+      "imageLinkClass": "full-image",
+      "imageUrlAttribute": "href",
+      "titleSuffixPattern": "\\s+-\\s+Example$",
+      "referer": "https://gallery.example/"
+    }
+  ]
+}
+```
+
+Add this property to the existing Source Profile object rather than replacing its primary-source fields. Then use **Admin > Import Gallery** with an existing model name or exact folder and the gallery URL. The URL is matched to a provider automatically.
+
+Imported galleries store their provider ID. Rescan All continues to discover galleries only from each model's primary source. Verify Known uses the stored provider for additional galleries; if that provider is removed or no longer accepts the saved URL, the gallery is skipped and preserved rather than treated as invalid. Repairs are downloaded into a staging directory and replace existing files only when every expected image succeeds. Initial and redirected page and image URLs are restricted to their configured host lists.
 
 ## Favorites
 

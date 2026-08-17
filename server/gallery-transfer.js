@@ -50,7 +50,10 @@ function createGalleryTransfer({
       const fileBase = path.join(galleryPath, String(index).padStart(2, '0'));
       const outPathBase = `${fileBase}-${sanitizeFileBase(title)}`;
       try {
-        const outPath = await downloadImage(item.imageUrl, outPathBase);
+        const outPath = await downloadImage(item.imageUrl, outPathBase, {
+          referer: item.referer || '',
+          allowedHosts: item.allowedHosts || [],
+        });
         downloaded.push({ ...item, outPath });
         if (onProgress) onProgress(downloaded.length, items.length);
       } catch (error) {

@@ -27,9 +27,9 @@ function createImportLibrary({
     const record = importDb.models[modelFolder];
     record.modelName = modelName;
     record.modelFolder = modelFolder;
-    const canonicalModelUrl = canonicalRemoteUrl(sourceUrl);
-    if (!importDb.scannedUrls.includes(canonicalModelUrl)) importDb.scannedUrls.push(canonicalModelUrl);
-    if (!record.modelUrls.includes(canonicalModelUrl)) record.modelUrls.push(canonicalModelUrl);
+    const canonicalModelUrl = sourceUrl ? canonicalRemoteUrl(sourceUrl) : '';
+    if (canonicalModelUrl && !importDb.scannedUrls.includes(canonicalModelUrl)) importDb.scannedUrls.push(canonicalModelUrl);
+    if (canonicalModelUrl && !record.modelUrls.includes(canonicalModelUrl)) record.modelUrls.push(canonicalModelUrl);
     if (!record.galleries || typeof record.galleries !== 'object') record.galleries = {};
     upsertModelRecord(modelFolder, modelName, canonicalModelUrl, { touchUpdatedAt: false });
     return record;
@@ -49,6 +49,7 @@ function createImportLibrary({
       : (options.lastSeenAt || now);
     record.galleries[sourceUrl] = {
       sourceUrl,
+      sourceProvider: options.sourceProvider || gallery.sourceProvider || existing.sourceProvider || 'primary',
       title: gallery.title || existing.title || '',
       folder: galleryName || existing.folder || '',
       imageCount: Number(imageCount || existing.imageCount || 0),
@@ -58,8 +59,12 @@ function createImportLibrary({
     };
     upsertGalleryRecord(record.modelFolder, record.modelName, galleryName || existing.folder || '', {
       sourceUrl,
+      sourceProvider: options.sourceProvider || gallery.sourceProvider || existing.sourceProvider || 'primary',
       title: gallery.title || existing.title || '',
       imageCount,
+      coverName: options.coverName,
+      imageBytes: options.imageBytes,
+      thumbBytes: options.thumbBytes,
       importedAt,
       lastSeenAt,
       touchModelUpdatedAt: !preserveTimestamps,
@@ -84,12 +89,14 @@ function createImportLibrary({
       if (!row.source_url || !existingFolders.has(row.folder)) continue;
       rememberImportedGallery(record, {
         sourceUrl: row.source_url,
+        sourceProvider: row.source_provider || 'primary',
         title: row.title || row.folder,
       }, row.folder, readImageFiles(path.join(modelPath, row.folder)).length, {
         preserveTimestamps: true,
         firstSeenAt: row.created_at,
         importedAt: row.imported_at,
         lastSeenAt: row.last_seen_at,
+        sourceProvider: row.source_provider || 'primary',
       });
     }
   }

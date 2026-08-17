@@ -44,17 +44,20 @@ function createLibraryRepository({
       );
       const now = nowIso();
       const sourceUrl = gallery.sourceUrl ? canonicalRemoteUrl(gallery.sourceUrl) : null;
+      const hasSourceProvider = gallery.sourceProvider != null;
+      const sourceProvider = String(gallery.sourceProvider || 'primary').trim().toLowerCase() || 'primary';
       const lastSeenAt = gallery.lastSeenAt || gallery.updatedAt || now;
       const coverName = gallery.coverName == null ? null : String(gallery.coverName || '').trim() || null;
       const imageBytes = gallery.imageBytes == null ? null : Number(gallery.imageBytes || 0);
       const thumbBytes = gallery.thumbBytes == null ? null : Number(gallery.thumbBytes || 0);
       db.prepare(`
         INSERT INTO galleries (
-          model_id, source_url, title, folder, image_count, cover_name, image_bytes, thumb_bytes, status, created_at, imported_at, last_seen_at
+          model_id, source_url, source_provider, title, folder, image_count, cover_name, image_bytes, thumb_bytes, status, created_at, imported_at, last_seen_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, COALESCE(?, 0), COALESCE(?, 0), ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, 0), COALESCE(?, 0), ?, ?, ?, ?)
         ON CONFLICT(model_id, folder) DO UPDATE SET
           source_url = COALESCE(excluded.source_url, galleries.source_url),
+          source_provider = CASE WHEN ? THEN excluded.source_provider ELSE galleries.source_provider END,
           title = excluded.title,
           image_count = excluded.image_count,
           cover_name = COALESCE(excluded.cover_name, galleries.cover_name),
@@ -66,6 +69,7 @@ function createLibraryRepository({
       `).run(
         modelId,
         sourceUrl,
+        sourceProvider,
         gallery.title || `Gallery ${galleryName}`,
         galleryName,
         Number(gallery.imageCount || gallery.count || 0),
@@ -76,6 +80,7 @@ function createLibraryRepository({
         now,
         gallery.importedAt || now,
         lastSeenAt,
+        hasSourceProvider ? 1 : 0,
         imageBytes,
         thumbBytes
       );

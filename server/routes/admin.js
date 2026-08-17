@@ -8,7 +8,7 @@ function handleAdminRoute(ctx, req, res, url) {
     normalizeAutoRescanTime, normalizedJsonSetting, scheduleAutoRescan, broadcast, stateNotice,
     getImportJob, requestWorker, scanLibrary, getScannedUrlPayload, auditSavedModelUrls,
     ignoredModelUrlsResponse, ignoreModelUrl, unignoreModelUrl, syncScannedUrlsFile,
-    viewStatsResponse, adminUsersResponse, loadImportErrors, dismissImportError,
+    viewStatsResponse, adminUsersResponse, adminModelOptionsResponse, loadImportErrors, dismissImportError,
     clearImportErrors, vacuumDatabase, runtimeStats, getLoadedModelList,
   } = ctx;
 
@@ -150,6 +150,10 @@ function handleAdminRoute(ctx, req, res, url) {
     sendJson(res, 200, adminUsersResponse());
     return true;
   }
+  if (url.pathname === '/api/admin/model-options') {
+    sendJson(res, 200, adminModelOptionsResponse());
+    return true;
+  }
   if (url.pathname === '/api/admin/import-errors') {
     sendJson(res, 200, loadImportErrors());
     return true;
@@ -224,6 +228,20 @@ function handleAdminRoute(ctx, req, res, url) {
       })
       .then(snapshot => sendJson(res, snapshot.status === 'error' ? 400 : 200, snapshot))
       .catch(error => sendJson(res, 400, { error: error.message || 'Import failed.' }));
+    return true;
+  }
+  if (url.pathname === '/api/admin/import-gallery' && req.method === 'POST') {
+    readRequestBody(req)
+      .then(body => {
+        const payload = JSON.parse(body || '{}');
+        return requestWorker('direct-gallery-import', {
+          model: String(payload.model || '').trim(),
+          url: String(payload.url || '').trim(),
+          providerId: String(payload.providerId || '').trim(),
+        });
+      })
+      .then(snapshot => sendJson(res, snapshot.status === 'error' ? 400 : 200, snapshot))
+      .catch(error => sendJson(res, 400, { error: error.message || 'Gallery import failed.' }));
     return true;
   }
   if (url.pathname === '/api/admin/rescan-all' && req.method === 'POST') {

@@ -111,6 +111,7 @@ function createLibraryScanner({
       count: files.length,
       cover,
       sourceUrl: galleryRecord?.source_url || null,
+      title: galleryRecord?.title || '',
       sourceSlug: sourceSlug(galleryRecord?.source_url),
       imageNames: files,
       createdThumbs: 0,
@@ -143,7 +144,7 @@ function createLibraryScanner({
       if (!gallery.count) continue;
       gallery.dbId = upsertGalleryRecord(modelName, normalizeModelName(modelName), galleryName, {
         sourceUrl: gallery.sourceUrl,
-        title: gallery.sourceSlug ? normalizeModelName(gallery.sourceSlug) : `Gallery ${galleryName}`,
+        title: gallery.title || (gallery.sourceSlug ? normalizeModelName(gallery.sourceSlug) : `Gallery ${galleryName}`),
         imageCount: gallery.count,
         coverName: gallery.coverName,
         imageBytes: gallery.imageBytes,

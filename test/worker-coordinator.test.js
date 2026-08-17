@@ -43,6 +43,7 @@ function fixture(overrides = {}) {
     importAllScannedUrls: async () => ({}),
     resumeRescanAll: async () => ({}),
     verifyKnownGalleries: async () => ({}),
+    importDirectGallery: async () => ({}),
     ...overrides,
   });
   return { calls, coordinator, getImportJob: () => importJob, getState: () => state };
@@ -90,4 +91,29 @@ test('pause and stop commands set their request flags', async () => {
   assert.deepEqual(calls.stops, [true]);
   assert.match(calls.updates[0], /Pause requested/);
   assert.match(calls.updates[1], /Stop after current model/);
+});
+
+test('direct gallery commands dispatch their payload to the importer', async () => {
+  let received = null;
+  const { coordinator } = fixture({
+    getImportJob: () => ({ active: false }),
+    importDirectGallery: async payload => { received = payload; },
+  });
+  const payload = { model: 'alpha', url: 'https://gallery.example/galleries/one', providerId: 'direct' };
+
+  await coordinator.commandHandlers['direct-gallery-import'](payload);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(received, payload);
+});
+
+test('direct gallery commands reject while another import is active', async () => {
+  let called = false;
+  const { coordinator } = fixture({
+    importDirectGallery: async () => { called = true; },
+  });
+  await assert.rejects(
+    coordinator.commandHandlers['direct-gallery-import']({}),
+    /already running/
+  );
+  assert.equal(called, false);
 });

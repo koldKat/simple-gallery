@@ -28,6 +28,7 @@ function fixture() {
       id INTEGER PRIMARY KEY,
       model_id INTEGER,
       source_url TEXT,
+      source_provider TEXT NOT NULL DEFAULT 'primary',
       title TEXT,
       folder TEXT,
       image_count INTEGER,
@@ -56,16 +57,16 @@ function fixture() {
     const existing = db.prepare('SELECT id FROM galleries WHERE model_id = ? AND folder = ?').get(model.id, galleryFolder);
     if (existing) {
       db.prepare(`
-        UPDATE galleries SET source_url = ?, title = ?, image_count = ?, status = ?, imported_at = ?, last_seen_at = ?
+        UPDATE galleries SET source_url = ?, source_provider = ?, title = ?, image_count = ?, status = ?, imported_at = ?, last_seen_at = ?
         WHERE id = ?
-      `).run(values.sourceUrl, values.title, values.imageCount, values.status, values.importedAt, values.lastSeenAt, existing.id);
+      `).run(values.sourceUrl, values.sourceProvider, values.title, values.imageCount, values.status, values.importedAt, values.lastSeenAt, existing.id);
       return existing.id;
     }
     const result = db.prepare(`
       INSERT INTO galleries
-        (model_id, source_url, title, folder, image_count, status, created_at, imported_at, last_seen_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(model.id, values.sourceUrl, values.title, galleryFolder, values.imageCount, values.status, now, values.importedAt, values.lastSeenAt);
+        (model_id, source_url, source_provider, title, folder, image_count, status, created_at, imported_at, last_seen_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(model.id, values.sourceUrl, values.sourceProvider, values.title, galleryFolder, values.imageCount, values.status, now, values.importedAt, values.lastSeenAt);
     return Number(result.lastInsertRowid);
   };
   const store = createImportStateStore({
@@ -91,9 +92,9 @@ test('load builds normalized state and excludes ignored URLs and failed gallerie
       (2, 1, 'https://example.test/model/alpha-a', '2026-01-01');
     INSERT INTO ignored_model_urls VALUES ('https://example.test/model/alpha-b');
     INSERT INTO galleries VALUES
-      (1, 1, 'https://example.test/gallery/one', 'One', '001', 4, 'imported', 'created', 'imported', 'seen'),
-      (2, 1, NULL, 'Local', '002', 2, 'imported', 'local-created', NULL, NULL),
-      (3, 1, 'https://example.test/gallery/failed', 'Failed', '003', 0, 'failed', 'failed-created', NULL, NULL);
+      (1, 1, 'https://example.test/gallery/one', 'direct', 'One', '001', 4, 'imported', 'created', 'imported', 'seen'),
+      (2, 1, NULL, 'primary', 'Local', '002', 2, 'imported', 'local-created', NULL, NULL),
+      (3, 1, 'https://example.test/gallery/failed', 'primary', 'Failed', '003', 0, 'failed', 'failed-created', NULL, NULL);
   `);
 
   const state = context.store.load();
@@ -104,6 +105,7 @@ test('load builds normalized state and excludes ignored URLs and failed gallerie
     'local:002',
   ]);
   assert.equal(state.models.alpha.galleries['local:002'].firstSeenAt, 'local-created');
+  assert.equal(state.models.alpha.galleries['https://example.test/gallery/one'].sourceProvider, 'direct');
   assert.equal(state.models.alpha.lastCheckedAt, '2026-01-03');
   context.db.close();
 });
@@ -113,8 +115,8 @@ test('save canonicalizes URLs, updates timestamps, and removes stale galleries',
   context.db.exec(`
     INSERT INTO models VALUES (1, 'Alpha', 'alpha', 'old', 'old', NULL);
     INSERT INTO galleries VALUES
-      (50, 1, 'https://example.test/gallery/keep', 'Old', '001', 1, 'imported', 'old', NULL, NULL),
-      (51, 1, 'https://example.test/gallery/stale', 'Stale', '002', 1, 'imported', 'old', NULL, NULL);
+      (50, 1, 'https://example.test/gallery/keep', 'direct', 'Old', '001', 1, 'imported', 'old', NULL, NULL),
+      (51, 1, 'https://example.test/gallery/stale', 'primary', 'Stale', '002', 1, 'imported', 'old', NULL, NULL);
   `);
   context.store.save({
     models: {
@@ -126,6 +128,7 @@ test('save canonicalizes URLs, updates timestamps, and removes stale galleries',
           keep: {
             folder: '001',
             sourceUrl: 'https://example.test/gallery/keep',
+            sourceProvider: 'direct',
             title: 'Updated',
             imageCount: 8,
             importedAt: 'imported',
@@ -140,8 +143,8 @@ test('save canonicalizes URLs, updates timestamps, and removes stale galleries',
     { source_url: 'https://example.test/model/alpha' },
   ]);
   assert.equal(context.db.prepare('SELECT last_checked_at FROM models WHERE id = 1').get().last_checked_at, '2026-08-16T11:00:00.000Z');
-  assert.deepEqual(context.db.prepare('SELECT id, title, image_count FROM galleries').all(), [
-    { id: 50, title: 'Updated', image_count: 8 },
+  assert.deepEqual(context.db.prepare('SELECT id, source_provider, title, image_count FROM galleries').all(), [
+    { id: 50, source_provider: 'direct', title: 'Updated', image_count: 8 },
   ]);
   assert.deepEqual(context.broadcasts, [{ urls: ['snapshot'] }]);
   context.db.close();
@@ -152,7 +155,7 @@ test('save keeps existing gallery rows when incoming desired galleries are empty
   context.db.exec(`
     INSERT INTO models VALUES (1, 'Alpha', 'alpha', 'old', 'old', NULL);
     INSERT INTO galleries VALUES
-      (50, 1, NULL, 'Existing', '001', 1, 'imported', 'old', NULL, NULL);
+      (50, 1, NULL, 'primary', 'Existing', '001', 1, 'imported', 'old', NULL, NULL);
   `);
   context.store.save({ models: { alpha: { modelName: 'Alpha', modelUrls: [], galleries: {} } } });
   assert.equal(context.db.prepare('SELECT COUNT(*) AS count FROM galleries').get().count, 1);

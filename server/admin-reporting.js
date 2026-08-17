@@ -78,7 +78,17 @@ function createAdminReporting({ db, getRuntimeStats, nowIso, viewLimit = 100 }) 
     };
   }
 
-  return { viewStats, users };
+  function modelOptions() {
+    return {
+      models: db.prepare(`
+        SELECT name, folder
+        FROM models
+        ORDER BY name COLLATE NOCASE, folder COLLATE NOCASE
+      `).all(),
+    };
+  }
+
+  return { viewStats, users, modelOptions };
 }
 
 module.exports = { createAdminReporting };

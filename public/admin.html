@@ -116,6 +116,14 @@
           <button id="load-btn" type="button">Load</button>
           <button id="import-btn" type="submit">Import</button>
         </form>
+        <form id="direct-gallery-form" class="admin-form admin-form-direct">
+          <div id="direct-gallery-model-combobox" class="model-autocomplete">
+            <input id="direct-gallery-model" type="text" placeholder="Existing model name or folder" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="direct-gallery-model-options" aria-expanded="false" required>
+            <div id="direct-gallery-model-options" class="model-autocomplete-options" role="listbox" hidden></div>
+          </div>
+          <input id="direct-gallery-url" type="url" placeholder="External gallery URL" autocomplete="off" required>
+          <button id="direct-gallery-btn" type="submit">Import Gallery</button>
+        </form>
         <div class="admin-form admin-form-wide">
           <input id="all-models-url" type="url" placeholder="All models URL" autocomplete="off">
           <button id="find-missing-models-btn" type="button">Find Missing Models</button>
@@ -279,6 +287,6 @@
     </main>
   </div>
 
-  <script src="/js/admin.js?v=64"></script>
+  <script src="/js/admin.js?v=66"></script>
 </body>
 </html>

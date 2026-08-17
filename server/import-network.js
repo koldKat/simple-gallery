@@ -24,6 +24,15 @@ function parseRetryAfterMs(value, now = Date.now()) {
   return 0;
 }
 
+function assertAllowedRemoteUrl(remoteUrl, allowedHosts, label) {
+  if (!allowedHosts.length) return;
+  const parsed = new URL(remoteUrl);
+  const host = parsed.hostname.toLowerCase();
+  const allowed = ['http:', 'https:'].includes(parsed.protocol)
+    && allowedHosts.some(value => host === value || host.endsWith(`.${value}`));
+  if (!allowed) throw new Error(`${label} uses an unapproved URL: ${parsed.origin}`);
+}
+
 async function mapLimit(items, limit, worker) {
   const results = new Array(items.length);
   let nextIndex = 0;
@@ -85,7 +94,11 @@ function createImportNetwork({
     throw new Error(`${label} failed after ${retries + 1} attempts for ${remoteUrl}: ${fetchErrorMessage(lastError)}`);
   }
 
-  async function fetchText(remoteUrl) {
+  async function fetchText(remoteUrl, options = {}) {
+    const allowedHosts = Array.isArray(options.allowedHosts)
+      ? options.allowedHosts.map(value => String(value || '').trim().toLowerCase()).filter(Boolean)
+      : [];
+    assertAllowedRemoteUrl(remoteUrl, allowedHosts, 'Page fetch');
     const response = await fetchWithRetry(remoteUrl, {
       headers: {
         'user-agent': 'SimpleGalleryImporter/1.0',
@@ -93,6 +106,7 @@ function createImportNetwork({
       },
       redirect: 'follow',
     }, 'Fetch');
+    assertAllowedRemoteUrl(response.url || remoteUrl, allowedHosts, 'Page fetch redirect');
     return response.text();
   }
 
@@ -106,16 +120,24 @@ function createImportNetwork({
     return imageExtensions.has(extension) ? extension : '.jpg';
   }
 
-  async function downloadImage(remoteUrl, outPathBase) {
+  async function downloadImage(remoteUrl, outPathBase, options = {}) {
     const profile = getSourceProfile();
+    const referer = String(options.referer || profile.referer || '').trim();
+    const allowedHosts = Array.isArray(options.allowedHosts)
+      ? options.allowedHosts.map(value => String(value || '').trim().toLowerCase()).filter(Boolean)
+      : [];
+    assertAllowedRemoteUrl(remoteUrl, allowedHosts, 'Image download');
     const response = await fetchWithRetry(remoteUrl, {
       headers: {
         'user-agent': 'SimpleGalleryImporter/1.0',
         accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-        ...(profile.referer ? { referer: profile.referer } : {}),
+        ...(referer ? { referer } : {}),
       },
       redirect: 'follow',
     }, 'Image download');
+    if (allowedHosts.length) {
+      assertAllowedRemoteUrl(response.url || remoteUrl, allowedHosts, 'Image download redirect');
+    }
     const extension = extensionFromResponse(remoteUrl, response);
     const outPath = `${outPathBase}${extension}`;
     const buffer = Buffer.from(await response.arrayBuffer());
@@ -138,5 +160,6 @@ module.exports = {
   createImportNetwork,
   fetchErrorMessage,
   parseRetryAfterMs,
+  assertAllowedRemoteUrl,
   mapLimit,
 };

@@ -23,6 +23,7 @@ function fixture() {
   let broadcasts = 0;
   let modelUpserts = 0;
   let galleryUpserts = 0;
+  let lastGalleryUpsert = null;
   const readDirs = target => {
     try {
       return fs.readdirSync(target, { withFileTypes: true }).filter(entry => entry.isDirectory() && entry.name !== '.thumbs').map(entry => entry.name);
@@ -48,14 +49,20 @@ function fixture() {
     fileSize: target => fs.statSync(target).size,
     galleryDbRecord: () => ({
       source_url: 'https://example.test/gallery/one',
+      title: 'Stored title',
       imported_at: '2026-08-15T10:00:00.000Z',
     }),
     galleryRecordsForModel: () => new Map([['001', {
       source_url: 'https://example.test/gallery/one',
+      title: 'Stored title',
       imported_at: '2026-08-15T10:00:00.000Z',
     }]]),
     upsertModelRecord: () => { modelUpserts += 1; return 2; },
-    upsertGalleryRecord: () => { galleryUpserts += 1; return 3; },
+    upsertGalleryRecord: (_model, _name, _gallery, values) => {
+      galleryUpserts += 1;
+      lastGalleryUpsert = values;
+      return 3;
+    },
     cleanupSeenRecordsForGallery: () => {},
     normalizeModelName: value => value[0].toUpperCase() + value.slice(1),
     sourceSlug: () => 'one',
@@ -83,6 +90,7 @@ function fixture() {
     broadcasts: () => broadcasts,
     modelUpserts: () => modelUpserts,
     galleryUpserts: () => galleryUpserts,
+    lastGalleryUpsert: () => lastGalleryUpsert,
     close() { fs.rmSync(root, { recursive: true, force: true }); },
   };
 }
@@ -109,6 +117,7 @@ test('gallery and model scans preserve source metadata and storage totals', asyn
   assert.equal(gallery.missingThumbs, 0);
   assert.equal(gallery.cover.endsWith('/.thumbs/one.jpg'), true);
   assert.equal(gallery.addedAt, '2026-08-15T10:00:00.000Z');
+  assert.equal(gallery.title, 'Stored title');
 
   const scanned = await context.scanner.scanModelState('alpha');
   assert.equal(scanned.model.dbId, 2);
@@ -116,6 +125,7 @@ test('gallery and model scans preserve source metadata and storage totals', asyn
   assert.equal(scanned.model.galleryCount, 1);
   assert.equal(scanned.model.galleries[0].dbId, 3);
   assert.equal(scanned.totals.totalBytes, 11);
+  assert.equal(context.lastGalleryUpsert().title, 'Stored title');
   context.close();
 });
 

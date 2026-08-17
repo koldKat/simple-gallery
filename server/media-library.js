@@ -21,11 +21,12 @@ function normalizeModelName(name) {
 }
 
 function sanitizeFileBase(name) {
-  return String(name || '')
+  const sanitized = String(name || '')
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'image';
+    .replace(/^-+|-+$/g, '');
+  return sanitized.slice(0, 160).replace(/-+$/g, '') || 'image';
 }
 
 function createMediaLibrary({ mediaRoot, mediaUrlPrefix, thumbDirectory, imageExtensions }) {

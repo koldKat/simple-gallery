@@ -24,6 +24,21 @@ function createSourceProfileService({ getJson }) {
       galleryDetailSuffixPattern: String(profile.galleryDetailSuffixPattern || '-\\d+\\.html'),
       largeImageLinkLabel: String(profile.largeImageLinkLabel || ''),
       largeImageLinkClass: String(profile.largeImageLinkClass || ''),
+      galleryProviders: Array.isArray(profile.galleryProviders) ? profile.galleryProviders.map((provider, index) => ({
+        id: String(provider?.id || `provider-${index + 1}`).trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-') || `provider-${index + 1}`,
+        type: String(provider?.type || 'direct-images').trim().toLowerCase(),
+        allowedHosts: Array.isArray(provider?.allowedHosts)
+          ? provider.allowedHosts.map(value => String(value).trim().toLowerCase()).filter(Boolean)
+          : [],
+        allowedImageHosts: Array.isArray(provider?.allowedImageHosts)
+          ? provider.allowedImageHosts.map(value => String(value).trim().toLowerCase()).filter(Boolean)
+          : [],
+        galleryPathPattern: String(provider?.galleryPathPattern || '^/$'),
+        imageLinkClass: String(provider?.imageLinkClass || '').trim(),
+        imageUrlAttribute: String(provider?.imageUrlAttribute || 'href').trim().toLowerCase(),
+        titleSuffixPattern: String(provider?.titleSuffixPattern || ''),
+        referer: String(provider?.referer || '').trim(),
+      })).filter(provider => provider.allowedHosts.length && provider.allowedImageHosts.length && provider.imageLinkClass) : [],
     };
   }
 

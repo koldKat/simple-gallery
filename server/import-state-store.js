@@ -55,6 +55,7 @@ function createImportStateStore({
       const key = row.source_url || `local:${row.folder}`;
       record.galleries[key] = {
         sourceUrl: row.source_url || '',
+        sourceProvider: row.source_provider || 'primary',
         title: row.title || '',
         folder: row.folder,
         imageCount: row.image_count || 0,
@@ -98,6 +99,7 @@ function createImportStateStore({
           if (!gallery.folder) continue;
           const galleryId = upsertGalleryRecord(modelFolder, modelName, gallery.folder, {
             sourceUrl: gallery.sourceUrl || null,
+            sourceProvider: gallery.sourceProvider || 'primary',
             title: gallery.title || `Gallery ${gallery.folder}`,
             imageCount: gallery.imageCount || 0,
             importedAt: gallery.importedAt,

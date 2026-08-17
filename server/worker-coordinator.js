@@ -27,6 +27,7 @@ function createWorkerCoordinator({
   importAllScannedUrls,
   resumeRescanAll,
   verifyKnownGalleries,
+  importDirectGallery,
   logError = console.error,
 }) {
   function mergeModelState(payload) {
@@ -117,6 +118,10 @@ function createWorkerCoordinator({
       return importSnapshot();
     },
     'verify-known-start': async () => startImportInBackground(() => verifyKnownGalleries()),
+    'direct-gallery-import': async payload => {
+      if (getImportJob()?.active) throw new Error('An import is already running.');
+      return startImportInBackground(() => importDirectGallery(payload));
+    },
     'stop-after-current-model': async () => {
       if (!getImportJob()?.active) throw new Error('No active import.');
       setStopRequested(true);

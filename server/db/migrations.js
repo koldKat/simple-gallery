@@ -6,6 +6,8 @@ function createDatabaseMigrations({ db, mediaRoot, galleryStorageStats, log = co
   function migrateGallerySourceUrlUniqueness() {
     const schema = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'galleries'").get()?.sql || '';
     if (!/\bsource_url\s+TEXT\s+UNIQUE\b/i.test(schema)) return;
+    const oldColumns = new Set(db.prepare('PRAGMA table_info(galleries)').all().map(column => column.name));
+    const sourceProviderExpression = oldColumns.has('source_provider') ? 'source_provider' : "'primary'";
 
     db.pragma('foreign_keys = OFF');
     const migrate = db.transaction(() => {
@@ -15,6 +17,7 @@ function createDatabaseMigrations({ db, mediaRoot, galleryStorageStats, log = co
           id INTEGER PRIMARY KEY,
           model_id INTEGER NOT NULL REFERENCES models(id) ON DELETE CASCADE,
           source_url TEXT,
+          source_provider TEXT NOT NULL DEFAULT 'primary',
           title TEXT NOT NULL DEFAULT '',
           folder TEXT NOT NULL,
           image_count INTEGER NOT NULL DEFAULT 0,
@@ -29,11 +32,11 @@ function createDatabaseMigrations({ db, mediaRoot, galleryStorageStats, log = co
           UNIQUE(model_id, folder)
         );
         INSERT INTO galleries (
-          id, model_id, source_url, title, folder, image_count, cover_name, image_bytes, thumb_bytes, status,
+          id, model_id, source_url, source_provider, title, folder, image_count, cover_name, image_bytes, thumb_bytes, status,
           error_message, created_at, imported_at, last_seen_at
         )
         SELECT
-          id, model_id, source_url, title, folder, image_count, NULL, 0, 0, status,
+          id, model_id, source_url, ${sourceProviderExpression}, title, folder, image_count, NULL, 0, 0, status,
           error_message, created_at, imported_at, last_seen_at
         FROM galleries_old;
         DROP TABLE galleries_old;
@@ -166,6 +169,13 @@ function createDatabaseMigrations({ db, mediaRoot, galleryStorageStats, log = co
     }
   }
 
+  function migrateGalleryProviderColumn() {
+    const columns = db.prepare(`PRAGMA table_info(galleries)`).all().map(column => column.name);
+    if (!columns.includes('source_provider')) {
+      db.exec(`ALTER TABLE galleries ADD COLUMN source_provider TEXT NOT NULL DEFAULT 'primary';`);
+    }
+  }
+
   function migrateUserPreferenceColumns() {
     const columns = db.prepare(`PRAGMA table_info(users)`).all().map(column => column.name);
     if (!columns.includes('preload_model')) {
@@ -287,6 +297,7 @@ function createDatabaseMigrations({ db, mediaRoot, galleryStorageStats, log = co
     migrateGallerySourceUrlUniqueness,
     repairRenamedGalleryForeignKeys,
     migrateGalleryStorageColumns,
+    migrateGalleryProviderColumn,
     migrateUserPreferenceColumns,
     backfillGalleryStorageColumns,
     repairShiftedRecoveredGalleryRows,

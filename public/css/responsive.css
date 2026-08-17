@@ -68,6 +68,10 @@
     grid-template-columns: 1fr;
   }
 
+  .admin-form-direct {
+    grid-template-columns: 1fr;
+  }
+
   .admin-weekday-picker {
     justify-content: flex-start;
     flex-wrap: wrap;

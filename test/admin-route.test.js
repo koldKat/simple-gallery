@@ -14,6 +14,10 @@ function recorder() {
   };
 }
 
+function waitTurn() {
+  return new Promise(resolve => setImmediate(resolve));
+}
+
 test('admin route ignores non-admin paths', () => {
   assert.equal(handleAdminRoute({}, {}, {}, { pathname: '/api/state' }), false);
 });
@@ -45,6 +49,19 @@ test('admin route reads live loaded-model state through its getter', () => {
   assert.equal(output.calls.at(-1).payload, loaded);
 });
 
+test('admin route exposes model autocomplete choices', () => {
+  const output = recorder();
+  handleAdminRoute({
+    isLocalhostRequest: () => true,
+    sendJson: output.sendJson,
+    adminModelOptionsResponse: () => ({ models: [{ name: 'Alpha', folder: 'alpha' }] }),
+  }, { method: 'GET' }, {}, { pathname: '/api/admin/model-options' });
+  assert.deepEqual(output.calls, [{
+    status: 200,
+    payload: { models: [{ name: 'Alpha', folder: 'alpha' }] },
+  }]);
+});
+
 test('admin route preserves active-import vacuum guard', () => {
   const output = recorder();
   let vacuumed = false;
@@ -57,6 +74,36 @@ test('admin route preserves active-import vacuum guard', () => {
 
   assert.equal(vacuumed, false);
   assert.equal(output.calls.at(-1).status, 409);
+});
+
+test('admin route dispatches direct gallery imports with normalized fields', async () => {
+  const output = recorder();
+  let command = null;
+  let payload = null;
+  const handled = handleAdminRoute({
+    isLocalhostRequest: () => true,
+    sendJson: output.sendJson,
+    readRequestBody: async () => JSON.stringify({
+      model: '  alpha  ',
+      url: '  https://gallery.example/galleries/one  ',
+      providerId: '  direct  ',
+    }),
+    requestWorker: async (nextCommand, nextPayload) => {
+      command = nextCommand;
+      payload = nextPayload;
+      return { status: 'running' };
+    },
+  }, { method: 'POST' }, {}, { pathname: '/api/admin/import-gallery' });
+
+  assert.equal(handled, true);
+  await waitTurn();
+  assert.equal(command, 'direct-gallery-import');
+  assert.deepEqual(payload, {
+    model: 'alpha',
+    url: 'https://gallery.example/galleries/one',
+    providerId: 'direct',
+  });
+  assert.deepEqual(output.calls, [{ status: 200, payload: { status: 'running' } }]);
 });
 
 test('unknown admin routes return the original JSON 404', () => {
