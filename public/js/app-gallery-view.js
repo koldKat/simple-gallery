@@ -301,10 +301,12 @@ export function createGalleryViewController(options) {
   function renderImageTiles() {
     elements.imageGrid.innerHTML = '';
     state.activeImages.forEach((image, index) => {
-      const button = documentObject.createElement('button');
-      button.type = 'button';
-      button.className = `image-tile${image.seen ? ' is-seen' : ''}`;
-      button.innerHTML = `<img loading="lazy" src="${image.thumb}" alt="${image.name}">`;
+      const tile = documentObject.createElement('div');
+      tile.className = `image-tile${image.seen ? ' is-seen' : ''}`;
+      tile.tabIndex = 0;
+      tile.setAttribute('role', 'button');
+      tile.setAttribute('aria-label', `Open ${image.name}`);
+      tile.innerHTML = `<img loading="lazy" src="${image.thumb}" alt="${image.name}">`;
       if (image.seen) {
         const seen = documentObject.createElement('button');
         seen.type = 'button';
@@ -316,20 +318,26 @@ export function createGalleryViewController(options) {
           event.stopPropagation();
           setImageSeen(image, false).catch(error => showNotice(error.message));
         });
-        button.append(seen);
+        tile.append(seen);
       }
       const fav = favoriteButton(image.favorite, 'Favorite image');
       fav.addEventListener('click', event => {
         event.stopPropagation();
         toggleImageFavorite(image).catch(error => showNotice(error.message));
       });
-      button.append(fav);
-      bindCardImageLoading(button, button.querySelector('img'));
-      button.addEventListener('click', () => {
+      tile.append(fav);
+      bindCardImageLoading(tile, tile.querySelector('img'));
+      const open = () => {
         const currentIndex = state.activeImages.findIndex(item => item.dbId === image.dbId && item.name === image.name);
         openLightbox(currentIndex >= 0 ? currentIndex : index);
+      };
+      tile.addEventListener('click', open);
+      tile.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') return;
+        event.preventDefault();
+        open();
       });
-      elements.imageGrid.append(button);
+      elements.imageGrid.append(tile);
     });
   }
 

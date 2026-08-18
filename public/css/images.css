@@ -16,8 +16,16 @@
   min-height: 0;
   padding: 0;
   overflow: hidden;
+  border: 1px solid var(--line);
   border-radius: 6px;
   background: #11161c;
+  cursor: pointer;
+}
+
+.image-tile:hover,
+.image-tile:focus-visible {
+  border-color: rgba(230, 180, 80, 0.58);
+  outline: none;
 }
 
 .image-tile-loading {
