@@ -14,6 +14,21 @@ export function createAppNavigationController({
   recordView,
   render,
 }) {
+  function galleryRevision(gallery) {
+    if (!gallery) return '';
+    return [
+      gallery.id || '',
+      gallery.dbId || '',
+      Number(gallery.count || 0),
+      gallery.updatedAtMs || gallery.updatedAt || '',
+    ].join('\n');
+  }
+
+  function modelRevision(model) {
+    if (!model) return '';
+    return (model.galleries || []).map(galleryRevision).join('\n---\n');
+  }
+
   function currentModel() {
     if (state.mode !== 'model' || !state.selectedModel) return null;
     return state.data?.models.find(model => model.id === state.selectedModel) || null;
@@ -115,16 +130,20 @@ export function createAppNavigationController({
 
   function setData(data) {
     const libraryChanged = Boolean(state.data && state.data.scannedAt !== data.scannedAt);
-    if (libraryChanged) {
-      resetPreloadScope();
-      resetActiveImages();
-    } else if (!state.data) {
+    const previousMode = state.mode;
+    const previousModelRevision = modelRevision(currentModel());
+    const previousGalleryRevision = galleryRevision(currentGallery());
+    if (!state.data) {
       clearGalleryCache();
     }
     applySeenOverrides(data);
     state.data = data;
     state.dataUserId = data.user?.id || null;
     state.user = data.user || null;
+    const selectedModelChanged = previousModelRevision !== modelRevision(currentModel());
+    if (libraryChanged && (previousMode !== 'model' || selectedModelChanged)) {
+      resetPreloadScope();
+    }
     if (state.selectedModel && !data.models.some(model => model.id === state.selectedModel)) {
       setMode('home');
     }
@@ -133,6 +152,12 @@ export function createAppNavigationController({
       state.galleryListExpanded = true;
       resetActiveImages();
     }
+    const activeGalleryChanged = Boolean(
+      state.activeGalleryId
+      && (state.activeGalleryId !== currentGallery()?.id
+        || previousGalleryRevision !== galleryRevision(currentGallery()))
+    );
+    if (activeGalleryChanged) resetActiveImages();
     render();
     syncPreloadForCurrentView();
   }

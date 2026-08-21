@@ -19,8 +19,8 @@ function fixture(createAppNavigationController, pathname = '/') {
       models: [{
         id: 'alpha',
         galleries: [
-          { id: 'alpha/001', dbId: 11 },
-          { id: 'alpha/002', dbId: 12 },
+          { id: 'alpha/001', dbId: 11, count: 2, updatedAt: 'stable-one' },
+          { id: 'alpha/002', dbId: 12, count: 3, updatedAt: 'stable-two' },
         ],
       }],
     },
@@ -105,4 +105,56 @@ test('library replacement drops invalid selections and resets preload scope', as
   assert.equal(state.selectedModel, null);
   assert.equal(calls.preloadReset, 1);
   assert.equal(calls.renders, 1);
+});
+
+test('scan refresh retains active images when the selected gallery revision is unchanged', async () => {
+  const { createAppNavigationController } = await loadModule();
+  const { calls, controller, state } = fixture(createAppNavigationController);
+  state.mode = 'model';
+  state.selectedModel = 'alpha';
+  state.selectedGallery = 'alpha/001';
+  state.imagesLoading = false;
+  const activeImages = state.activeImages;
+
+  controller.setData({
+    scannedAt: 'two',
+    models: [{
+      id: 'alpha',
+      galleries: [
+        { id: 'alpha/001', dbId: 11, count: 2, updatedAt: 'stable-one' },
+        { id: 'alpha/002', dbId: 12, count: 3, updatedAt: 'stable-two' },
+      ],
+    }],
+    user: null,
+  });
+
+  assert.strictEqual(state.activeImages, activeImages);
+  assert.equal(state.activeGalleryId, 'alpha/001');
+  assert.equal(calls.decoded, 0);
+  assert.equal(calls.preloadReset, 0);
+});
+
+test('scan refresh clears active images when the selected gallery content changes', async () => {
+  const { createAppNavigationController } = await loadModule();
+  const { calls, controller, state } = fixture(createAppNavigationController);
+  state.mode = 'model';
+  state.selectedModel = 'alpha';
+  state.selectedGallery = 'alpha/001';
+
+  controller.setData({
+    scannedAt: 'two',
+    models: [{
+      id: 'alpha',
+      galleries: [
+        { id: 'alpha/001', dbId: 11, count: 4, updatedAt: 'changed' },
+        { id: 'alpha/002', dbId: 12, count: 3, updatedAt: 'stable-two' },
+      ],
+    }],
+    user: null,
+  });
+
+  assert.deepEqual(state.activeImages, []);
+  assert.equal(state.activeGalleryId, null);
+  assert.equal(calls.decoded, 1);
+  assert.equal(calls.preloadReset, 1);
 });

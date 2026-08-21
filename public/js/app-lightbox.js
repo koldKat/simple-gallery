@@ -25,8 +25,24 @@ export function createLightboxController(options) {
   let scrollY = 0;
   let historyActive = false;
   let bound = false;
+  let selectedImageKey = '';
+
+  function imageKey(image) {
+    if (!image) return '';
+    return `${Number(image.dbId || 0)}\n${String(image.name || '')}`;
+  }
+
+  function selectIndex(index) {
+    state.lightboxIndex = index;
+    selectedImageKey = imageKey(state.activeImages[index]);
+  }
 
   function activeImage() {
+    if (selectedImageKey) {
+      const index = state.activeImages.findIndex(image => imageKey(image) === selectedImageKey);
+      if (index < 0) return null;
+      state.lightboxIndex = index;
+    }
     return state.activeImages[state.lightboxIndex];
   }
 
@@ -127,7 +143,7 @@ export function createLightboxController(options) {
   }
 
   function open(index) {
-    state.lightboxIndex = index;
+    selectIndex(index);
     lockScroll();
     pushHistory();
     elements.lightbox.hidden = false;
@@ -148,6 +164,7 @@ export function createLightboxController(options) {
     elements.lightboxImg.classList.add('is-pending');
     elements.lightboxImg.classList.remove('is-loading', 'is-error');
     elements.lightboxLoading.hidden = true;
+    selectedImageKey = '';
     if (!options.fromHistory && historyActive && windowObject.history.state?.lightbox) {
       historyActive = false;
       windowObject.history.back();
@@ -158,11 +175,25 @@ export function createLightboxController(options) {
 
   function step(delta) {
     if (!state.activeImages.length) return;
+    if (!activeImage()) return;
     const nextIndex = state.lightboxIndex + delta;
     if (nextIndex < 0 || nextIndex >= state.activeImages.length) return;
-    state.lightboxIndex = nextIndex;
+    selectIndex(nextIndex);
     update();
     markActiveSeen();
+  }
+
+  function reconcileActiveImages() {
+    if (!isOpen() || !state.activeImages.length) return;
+    let index = selectedImageKey
+      ? state.activeImages.findIndex(image => imageKey(image) === selectedImageKey)
+      : state.lightboxIndex;
+    if (index < 0) index = Math.min(state.lightboxIndex, state.activeImages.length - 1);
+    selectIndex(index);
+    const image = activeImage();
+    if (!image) return;
+    if (elements.lightboxImg.getAttribute('src') !== image.src) update();
+    else renderMeta();
   }
 
   function download() {
@@ -326,6 +357,7 @@ export function createLightboxController(options) {
     handleKeydown,
     isOpen,
     open,
+    reconcileActiveImages,
     renderMeta,
     step,
     update,

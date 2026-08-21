@@ -144,3 +144,20 @@ test('visible image loads are registered with the decoded-image cache', async ()
   assert.equal(context.decoded.length, 1);
   assert.equal(context.decoded[0].url, '/one.jpg');
 });
+
+test('array replacement preserves the displayed image identity and spacebar favorite target', async () => {
+  const { createLightboxController } = await loadModule();
+  const context = fixture(createLightboxController);
+  context.controller.open(1);
+  context.state.activeImages = [
+    { src: '/two.jpg', name: 'two.jpg', dbId: 7, seen: false, favorite: true },
+    { src: '/one.jpg', name: 'one.jpg', dbId: 7, seen: false, favorite: false },
+  ];
+
+  context.controller.reconcileActiveImages();
+  context.controller.handleKeydown({ key: ' ', preventDefault() {} });
+
+  assert.equal(context.state.lightboxIndex, 0);
+  assert.equal(context.elements.lightboxImg.src, '/two.jpg');
+  assert.deepEqual(context.favorites, ['two.jpg']);
+});

@@ -23,6 +23,7 @@ export function createGalleryViewController(options) {
     stepGallery,
     openGallery,
     openLightbox,
+    reconcileLightboxImages,
     setTooltip,
     showNotice,
     formatCount,
@@ -261,6 +262,7 @@ export function createGalleryViewController(options) {
       if (state.activeGalleryId !== gallery.id) return;
       state.imagesLoading = false;
       state.activeImages = galleryImagesFromPayload(payload);
+      reconcileLightboxImages();
       syncActiveGallerySeenState();
       renderHeaderStats();
       renderModels();

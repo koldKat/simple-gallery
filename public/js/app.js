@@ -2,17 +2,17 @@ import { createAuthController } from './app-auth.js?v=1';
 import { createBackdropController, uniqueBackdropUrls } from './app-backdrop.js?v=1';
 import { initAppTooltips, setTooltip } from './app-tooltips.js?v=1';
 import { createGalleryPayloadCache } from './app-gallery-cache.js?v=1';
-import { createGalleryViewController } from './app-gallery-view.js?v=2';
+import { createGalleryViewController } from './app-gallery-view.js?v=3';
 import { createAppHeaderController } from './app-header.js?v=1';
-import { createAppEventController } from './app-events.js?v=1';
-import { createAppDataService } from './app-data.js?v=1';
+import { createAppEventController } from './app-events.js?v=2';
+import { createAppDataService } from './app-data.js?v=2';
 import { createFavoritesController } from './app-favorites.js?v=1';
 import { createFavoriteActionsController } from './app-favorite-actions.js?v=1';
 import { createImagePreloader } from './app-preloader.js?v=1';
 import { createAppPreferencesController } from './app-preferences.js?v=1';
-import { createLightboxController } from './app-lightbox.js?v=1';
+import { createLightboxController } from './app-lightbox.js?v=2';
 import { createModelNavigationController } from './app-model-navigation.js?v=1';
-import { createAppNavigationController } from './app-navigation.js?v=1';
+import { createAppNavigationController } from './app-navigation.js?v=2';
 import { createSeenStateController } from './app-seen-state.js?v=2';
 import {
   formatCount,
@@ -305,6 +305,7 @@ const openLightbox = index => lightboxController.open(index);
 const closeLightbox = options => lightboxController.close(options);
 const updateLightbox = () => lightboxController.update();
 const renderLightboxMeta = () => lightboxController.renderMeta();
+const reconcileLightboxImages = () => lightboxController.reconcileActiveImages();
 const favoritesController = createFavoritesController({
   state,
   elements: els,
@@ -382,6 +383,7 @@ const galleryViewController = createGalleryViewController({
   stepGallery,
   openGallery,
   openLightbox,
+  reconcileLightboxImages,
   setTooltip,
   showNotice,
   formatCount,
@@ -476,6 +478,7 @@ const appEventController = createAppEventController({
   storageKeys: STORAGE_KEYS,
   lightboxController,
   renderModels,
+  renderAppMetadata: renderHeaderMetadata,
   writeStoredFlag,
   setMajorMode,
   syncRoute,

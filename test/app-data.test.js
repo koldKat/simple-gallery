@@ -74,3 +74,25 @@ test('late user-stat responses cannot overwrite a different signed-in user', asy
   assert.equal(state.userStats, null);
   assert.equal(calls.headers, 0);
 });
+
+test('repeated scan notifications coalesce state loads without concurrent or stale responses', async () => {
+  const { createAppDataService } = await loadModule();
+  const pending = [];
+  const { calls, service } = fixture(createAppDataService, url => {
+    assert.equal(url, '/api/state');
+    return new Promise(resolve => pending.push(resolve));
+  });
+
+  const first = service.loadState();
+  const second = service.loadState();
+  const third = service.loadState();
+  assert.equal(pending.length, 1);
+
+  pending[0](response({ scannedAt: 'first' }));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(pending.length, 2);
+  pending[1](response({ scannedAt: 'latest' }));
+  await Promise.all([first, second, third]);
+
+  assert.deepEqual(calls.state.map(item => item.scannedAt), ['first', 'latest']);
+});

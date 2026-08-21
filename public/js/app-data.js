@@ -11,6 +11,9 @@ export function createAppDataService({
   syncPreloadForCurrentView,
   showNotice,
 }) {
+  let stateLoadPromise = null;
+  let stateReloadQueued = false;
+
   async function fetchJson(url, options = {}) {
     const response = await fetchImpl(url, {
       ...options,
@@ -59,9 +62,21 @@ export function createAppDataService({
     syncPreloadForCurrentView();
   }
 
-  async function loadState() {
-    const response = await fetchImpl('/api/state', { cache: 'no-store' });
-    setData(await response.json());
+  function loadState() {
+    if (stateLoadPromise) {
+      stateReloadQueued = true;
+      return stateLoadPromise;
+    }
+    stateLoadPromise = (async () => {
+      do {
+        stateReloadQueued = false;
+        const response = await fetchImpl('/api/state', { cache: 'no-store' });
+        setData(await response.json());
+      } while (stateReloadQueued);
+    })().finally(() => {
+      stateLoadPromise = null;
+    });
+    return stateLoadPromise;
   }
 
   async function loadCurrentUser() {

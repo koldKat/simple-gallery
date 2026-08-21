@@ -6,6 +6,7 @@ export function createAppEventController({
   storageKeys,
   lightboxController,
   renderModels,
+  renderAppMetadata,
   writeStoredFlag,
   setMajorMode,
   syncRoute,
@@ -120,7 +121,7 @@ export function createAppEventController({
       const notice = JSON.parse(event.data);
       if (notice.app && state.data) {
         state.data = { ...state.data, app: { ...(state.data.app || {}), ...notice.app } };
-        render();
+        renderAppMetadata();
       }
       if (notice.status === 'ready' || notice.status === 'error') {
         loadState().catch(error => showNotice(error.message));
@@ -157,5 +158,5 @@ export function createAppEventController({
     bootstrap();
   }
 
-  return { bootstrap, handleDocumentKeydown, handlePopState, start };
+  return { bindServerEvents, bootstrap, handleDocumentKeydown, handlePopState, start };
 }

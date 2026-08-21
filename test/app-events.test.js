@@ -29,6 +29,7 @@ function fixture(createAppEventController, overrides = {}) {
     storageKeys: {},
     lightboxController: { handleKeydown: () => false, isOpen: () => false, bind: noop },
     renderModels: noop,
+    renderAppMetadata: noop,
     writeStoredFlag: noop,
     setMajorMode: noop,
     syncRoute: noop,
@@ -94,4 +95,35 @@ test('browser back closes an open lightbox before changing the route', async () 
 
   assert.deepEqual(calls.close, [{ fromHistory: true }]);
   assert.equal(routeChanges, 0);
+});
+
+test('scan state metadata updates the header without rerendering the gallery DOM', async () => {
+  const { createAppEventController } = await loadModule();
+  let source;
+  let metadataRenders = 0;
+  let stateLoads = 0;
+  class FakeEventSource {
+    constructor() {
+      this.listeners = new Map();
+      source = this;
+    }
+    addEventListener(name, listener) { this.listeners.set(name, listener); }
+    dispatch(name, payload) { this.listeners.get(name)?.({ data: JSON.stringify(payload) }); }
+  }
+  const { calls, controller, state } = fixture(createAppEventController, {
+    windowObject: { addEventListener() {}, EventSource: FakeEventSource },
+    renderAppMetadata: () => { metadataRenders += 1; },
+    loadState: async () => { stateLoads += 1; },
+  });
+  state.data = { app: { name: 'Before' } };
+  controller.bindServerEvents();
+
+  source.dispatch('state', { status: 'scanning', app: { name: 'After' } });
+  assert.equal(state.data.app.name, 'After');
+  assert.equal(metadataRenders, 1);
+  assert.equal(calls.renders, 0);
+  assert.equal(stateLoads, 0);
+
+  source.dispatch('state', { status: 'ready' });
+  assert.equal(stateLoads, 1);
 });

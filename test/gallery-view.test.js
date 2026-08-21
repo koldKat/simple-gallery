@@ -59,6 +59,7 @@ function fixture(createGalleryViewController, overrides = {}) {
     stepGallery() {},
     openGallery() {},
     openLightbox: overrides.openLightbox || (() => {}),
+    reconcileLightboxImages: overrides.reconcileLightboxImages || (() => {}),
     setTooltip() {},
     showNotice: message => calls.push(`notice:${message}`),
     formatCount: value => String(value),
