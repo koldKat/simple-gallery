@@ -94,5 +94,8 @@ test('SEO metadata is escaped and gallery pages include image data', () => {
   assert.match(html, /<title>New &lt;Model&gt; \/ Gallery 001 \| Test &amp; Gallery<\/title>/);
   assert.match(html, /https:\/\/example\.test\/media\/one\.jpg/);
   assert.match(html, /"@type":"ImageObject"/);
+  assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest">/);
+  assert.match(html, /<link rel="apple-touch-icon" sizes="180x180" href="\/icons\/apple-touch-icon\.png">/);
+  assert.match(html, /<meta name="theme-color" content="#111317">/);
   assert.match(html, /<script type="module" src="\/js\/app\.js"><\/script>/);
 });

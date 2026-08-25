@@ -42,6 +42,7 @@ const { createStaticHandler } = require('./server/static-handler');
 const { createBackupService } = require('./server/backup');
 const { createTrafficService } = require('./server/traffic');
 const { createPageRenderer } = require('./server/page-renderer');
+const { renderWebAppManifest } = require('./server/web-app-manifest');
 const { createAuthService } = require('./server/auth-service');
 const { createSettingsStore } = require('./server/settings-store');
 const { createViewTracker } = require('./server/view-tracker');
@@ -1006,6 +1007,7 @@ const siteRouteContext = {
   renderModelPage,
   renderGalleryPage,
   renderNotFoundPage,
+  renderWebAppManifest: () => renderWebAppManifest(appMetadata()),
   getState: () => lastState,
 };
 

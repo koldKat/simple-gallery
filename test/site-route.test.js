@@ -27,6 +27,7 @@ function fixture() {
     renderModelPage: (_req, model) => `model:${model.id}`,
     renderGalleryPage: (_req, model, gallery) => `gallery:${model.id}:${gallery.name}`,
     renderNotFoundPage: () => 'missing',
+    renderWebAppManifest: () => '{"display":"standalone"}',
     getState: () => state,
   };
   return { calls, context };
@@ -57,6 +58,19 @@ test('unknown routes fall through to static handling', () => {
   assert.equal(handled, false);
   assert.deepEqual(calls, []);
   assert.deepEqual(decodeRouteParts('/model/bad%EA/gallery/001'), ['model', 'bad%EA', 'gallery', '001']);
+});
+
+test('web app manifest is served with the installable manifest content type', () => {
+  const { calls, context } = fixture();
+  const handled = handleSiteRoute(context, { method: 'GET' }, {}, new URL('https://example.test/manifest.webmanifest'));
+
+  assert.equal(handled, true);
+  assert.deepEqual(calls, [[
+    'text',
+    200,
+    '{"display":"standalone"}',
+    'application/manifest+json; charset=utf-8',
+  ]]);
 });
 
 test('public routes cannot trigger a library rescan', () => {

@@ -193,6 +193,11 @@ function createPageRenderer({ appMetadata, seoProfile, normalizeModelName, galle
     <meta name="bingbot" content="index,follow,max-snippet:-1,max-image-preview:large">
     <meta name="googlebot" content="index,follow,max-snippet:-1,max-image-preview:large">
     <meta name="application-name" content="${escapeHtml(app.name)}">
+    <meta name="theme-color" content="#111317">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="${escapeHtml(app.name)}">
     <link rel="canonical" href="${escapeHtml(canonical)}">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="${escapeHtml(app.name)}">
@@ -204,7 +209,9 @@ function createPageRenderer({ appMetadata, seoProfile, normalizeModelName, galle
     <meta name="twitter:title" content="${escapeHtml(options.title || app.name)}">
     <meta name="twitter:description" content="${escapeHtml(description)}">
     ${image ? `<meta name="twitter:image" content="${escapeHtml(image)}">` : ''}
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="64x64" href="/icons/favicon-64.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.webmanifest">
     <link rel="stylesheet" href="/css/foundation.css">
     <link rel="stylesheet" href="/css/admin-shell.css">
     <link rel="stylesheet" href="/css/admin-import.css">

@@ -28,7 +28,7 @@ Node.js and SQLite gallery application served by `server.js`.
 - `server/import-errors.js` persists and broadcasts importer failures.
 - `server/admin-reporting.js` builds read-only view and user reports plus Admin model choices from live database and traffic state.
 - `server/db/`, `server/database-runtime.js`, `server/db-housekeeping.js`, and `server/backup.js` own the database connection, schema initialization, busy retries, runtime metrics, maintenance operations, periodic cleanup lifecycle, and backup retention.
-- `server/event-bus.js`, `server/traffic.js`, `server/page-renderer.js`, `server/sitemap.js`, `server/routes/site.js`, and `server/static-handler.js` own server-sent events, request accounting, public HTML/SEO, sitemap and public route dispatch, and static-file policy.
+- `server/event-bus.js`, `server/traffic.js`, `server/page-renderer.js`, `server/web-app-manifest.js`, `server/sitemap.js`, `server/routes/site.js`, and `server/static-handler.js` own server-sent events, request accounting, public HTML/SEO, installable-app metadata, sitemap and public route dispatch, and static-file policy.
 - `server/auto-rescan-service.js` owns the scheduled Rescan All timer, retry lifecycle, and worker dispatch.
 - `server/worker-service.js` owns worker process creation, IPC request correlation, event transport, and shutdown; `server/worker-coordinator.js` owns import command dispatch and worker-state reconciliation.
 - `server/schedule.js`, `server/html-format.js`, and `server/route-paths.js` provide pure scheduling, formatting, and route helpers.
@@ -50,6 +50,10 @@ node server.js
 ```
 
 The default address is `http://localhost:3020/`. Set `PORT`, `DB_PATH`, `DB_BACKUP_DIR`, or `MEDIA_ROOT` to override the corresponding neutral defaults.
+
+## Installable App
+
+The public site exposes `/manifest.webmanifest` with the application name and description from the runtime profile. Supported mobile and desktop browsers can install the site from their browser menu. Opening it from the installed icon uses standalone display mode without the normal browser address bar. Android receives 192px and 512px maskable icons, while Apple devices receive a dedicated 180px touch icon.
 
 ## Instance Profile
 

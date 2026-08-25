@@ -29,6 +29,7 @@ function handleSiteRoute(context, req, res, url) {
     renderModelPage,
     renderGalleryPage,
     renderNotFoundPage,
+    renderWebAppManifest,
     getState,
   } = context;
 
@@ -48,6 +49,10 @@ function handleSiteRoute(context, req, res, url) {
   }
 
   if (req.method !== 'GET' && req.method !== 'HEAD') return false;
+  if (url.pathname === '/manifest.webmanifest') {
+    sendText(res, 200, renderWebAppManifest(), 'application/manifest+json; charset=utf-8');
+    return true;
+  }
   if (url.pathname === '/robots.txt') {
     sendText(
       res,
