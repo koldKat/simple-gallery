@@ -37,6 +37,8 @@ The main browser entry point is `public/js/app.js`. Reusable browser controllers
 
 Browser styles are loaded in cascade order from focused files under `public/css/`: `foundation.css` owns shared tokens, controls, and the application header; `admin-shell.css`, `admin-import.css`, and `admin-stats.css` own Admin structure/settings, import/audit views, and reporting respectively; `gallery-shell.css` owns the content shell, sidebar, cards, previews, and tooltips; `gallery-detail.css`, `favorites.css`, `images.css`, and `lightbox.css` own their named gallery features; and `responsive.css` owns mobile and reduced-motion overrides. `style.css`, `admin.css`, and `gallery.css` are retained only as compatibility import manifests for stale or external references.
 
+Maintained JavaScript and CSS use clean URLs without manual `?v=N` suffixes. Static responses use `Cache-Control: no-cache` with ETags, so browsers revalidate on each load and receive `304 Not Modified` for unchanged files. Generated thumbnails keep immutable one-year caching because their stored URLs are content-specific.
+
 Keep modules dependency-injected where they need process state. A module should not open the database, start timers, or mutate global application state merely because it is imported. This keeps startup ownership visible in `server.js` and permits isolated tests without opening `gallery.db`.
 
 ## Running

@@ -52,11 +52,21 @@ function createStaticHandler(ctx) {
         return;
       }
       const ext = path.extname(filePath).toLowerCase();
+      const immutable = requested.includes(`/${thumbDirectory}/`);
+      const cacheControl = immutable ? 'public, max-age=31536000, immutable' : 'no-cache';
+      const etag = `"${stat.size}-${Math.trunc(stat.mtimeMs).toString(16)}"`;
       markForegroundActivity(requested);
-      res.writeHead(200, {
+      const headers = {
         'content-type': mimeTypes[ext] || 'application/octet-stream',
-        'cache-control': requested.includes(`/${thumbDirectory}/`) ? 'public, max-age=31536000, immutable' : 'no-cache',
-      });
+        'cache-control': cacheControl,
+        etag,
+      };
+      if (!immutable && req.headers?.['if-none-match'] === etag) {
+        res.writeHead(304, headers);
+        res.end();
+        return;
+      }
+      res.writeHead(200, { ...headers, 'content-length': stat.size });
       fs.createReadStream(filePath).pipe(res);
     });
   };

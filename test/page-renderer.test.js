@@ -94,5 +94,5 @@ test('SEO metadata is escaped and gallery pages include image data', () => {
   assert.match(html, /<title>New &lt;Model&gt; \/ Gallery 001 \| Test &amp; Gallery<\/title>/);
   assert.match(html, /https:\/\/example\.test\/media\/one\.jpg/);
   assert.match(html, /"@type":"ImageObject"/);
-  assert.match(html, /<script type="module" src="\/js\/app\.js\?v=108"><\/script>/);
+  assert.match(html, /<script type="module" src="\/js\/app\.js"><\/script>/);
 });

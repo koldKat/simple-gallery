@@ -7,16 +7,16 @@ const assert = require('node:assert/strict');
 
 const root = path.join(__dirname, '..');
 const stylesheetPaths = [
-  '/css/foundation.css?v=1',
-  '/css/admin-shell.css?v=1',
-  '/css/admin-import.css?v=1',
-  '/css/admin-stats.css?v=1',
-  '/css/gallery-shell.css?v=1',
-  '/css/gallery-detail.css?v=1',
-  '/css/favorites.css?v=1',
-  '/css/images.css?v=1',
-  '/css/lightbox.css?v=1',
-  '/css/responsive.css?v=1',
+  '/css/foundation.css',
+  '/css/admin-shell.css',
+  '/css/admin-import.css',
+  '/css/admin-stats.css',
+  '/css/gallery-shell.css',
+  '/css/gallery-detail.css',
+  '/css/favorites.css',
+  '/css/images.css',
+  '/css/lightbox.css',
+  '/css/responsive.css',
 ];
 
 function read(relativePath) {
@@ -51,11 +51,24 @@ test('server-rendered pages load modular stylesheets in cascade order', () => {
 test('compatibility stylesheet imports every module in cascade order', () => {
   const asLinks = css => css.replaceAll('url(\'', 'href="').replaceAll('\');', '"');
   assertStylesheetOrder(asLinks(read('public/css/style.css')), [
-    '/css/foundation.css?v=1',
-    '/css/admin.css?v=1',
-    '/css/gallery.css?v=1',
-    '/css/responsive.css?v=1',
+    '/css/foundation.css',
+    '/css/admin.css',
+    '/css/gallery.css',
+    '/css/responsive.css',
   ]);
   assertStylesheetOrder(asLinks(read('public/css/admin.css')), stylesheetPaths.slice(1, 4));
   assertStylesheetOrder(asLinks(read('public/css/gallery.css')), stylesheetPaths.slice(4, -1));
+});
+
+test('maintained stylesheet and module references have no manual cache versions', () => {
+  const sources = [
+    read('public/index.html'),
+    read('public/admin.html'),
+    read('server/page-renderer.js'),
+    read('public/js/app.js'),
+    read('public/css/style.css'),
+    read('public/css/admin.css'),
+    read('public/css/gallery.css'),
+  ].join('\n');
+  assert.doesNotMatch(sources, /[?&](?:v|ver|version)=\d+/);
 });

@@ -1,19 +1,19 @@
-import { createAuthController } from './app-auth.js?v=1';
-import { createBackdropController, uniqueBackdropUrls } from './app-backdrop.js?v=1';
-import { initAppTooltips, setTooltip } from './app-tooltips.js?v=1';
-import { createGalleryPayloadCache } from './app-gallery-cache.js?v=1';
-import { createGalleryViewController } from './app-gallery-view.js?v=3';
-import { createAppHeaderController } from './app-header.js?v=1';
-import { createAppEventController } from './app-events.js?v=2';
-import { createAppDataService } from './app-data.js?v=2';
-import { createFavoritesController } from './app-favorites.js?v=1';
-import { createFavoriteActionsController } from './app-favorite-actions.js?v=1';
-import { createImagePreloader } from './app-preloader.js?v=1';
-import { createAppPreferencesController } from './app-preferences.js?v=1';
-import { createLightboxController } from './app-lightbox.js?v=2';
-import { createModelNavigationController } from './app-model-navigation.js?v=1';
-import { createAppNavigationController } from './app-navigation.js?v=2';
-import { createSeenStateController } from './app-seen-state.js?v=2';
+import { createAuthController } from './app-auth.js';
+import { createBackdropController, uniqueBackdropUrls } from './app-backdrop.js';
+import { initAppTooltips, setTooltip } from './app-tooltips.js';
+import { createGalleryPayloadCache } from './app-gallery-cache.js';
+import { createGalleryViewController } from './app-gallery-view.js';
+import { createAppHeaderController } from './app-header.js';
+import { createAppEventController } from './app-events.js';
+import { createAppDataService } from './app-data.js';
+import { createFavoritesController } from './app-favorites.js';
+import { createFavoriteActionsController } from './app-favorite-actions.js';
+import { createImagePreloader } from './app-preloader.js';
+import { createAppPreferencesController } from './app-preferences.js';
+import { createLightboxController } from './app-lightbox.js';
+import { createModelNavigationController } from './app-model-navigation.js';
+import { createAppNavigationController } from './app-navigation.js';
+import { createSeenStateController } from './app-seen-state.js';
 import {
   formatCount,
   formatDate,
@@ -24,7 +24,7 @@ import {
   searchText,
   shuffledModels,
   titleCase,
-} from './app-utils.js?v=1';
+} from './app-utils.js';
 
 const state = {
   data: null,

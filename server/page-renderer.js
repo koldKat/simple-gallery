@@ -205,16 +205,16 @@ function createPageRenderer({ appMetadata, seoProfile, normalizeModelName, galle
     <meta name="twitter:description" content="${escapeHtml(description)}">
     ${image ? `<meta name="twitter:image" content="${escapeHtml(image)}">` : ''}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="stylesheet" href="/css/foundation.css?v=1">
-    <link rel="stylesheet" href="/css/admin-shell.css?v=1">
-    <link rel="stylesheet" href="/css/admin-import.css?v=1">
-    <link rel="stylesheet" href="/css/admin-stats.css?v=1">
-    <link rel="stylesheet" href="/css/gallery-shell.css?v=1">
-    <link rel="stylesheet" href="/css/gallery-detail.css?v=1">
-    <link rel="stylesheet" href="/css/favorites.css?v=1">
-    <link rel="stylesheet" href="/css/images.css?v=1">
-    <link rel="stylesheet" href="/css/lightbox.css?v=1">
-    <link rel="stylesheet" href="/css/responsive.css?v=1">
+    <link rel="stylesheet" href="/css/foundation.css">
+    <link rel="stylesheet" href="/css/admin-shell.css">
+    <link rel="stylesheet" href="/css/admin-import.css">
+    <link rel="stylesheet" href="/css/admin-stats.css">
+    <link rel="stylesheet" href="/css/gallery-shell.css">
+    <link rel="stylesheet" href="/css/gallery-detail.css">
+    <link rel="stylesheet" href="/css/favorites.css">
+    <link rel="stylesheet" href="/css/images.css">
+    <link rel="stylesheet" href="/css/lightbox.css">
+    <link rel="stylesheet" href="/css/responsive.css">
     ${headLinks.join('\n  ')}
     ${jsonLd.map(entry => `<script type="application/ld+json">${escapeJsonForHtml(entry)}</script>`).join('\n  ')}
   </head>
@@ -300,7 +300,7 @@ function createPageRenderer({ appMetadata, seoProfile, normalizeModelName, galle
       <button id="next-image" class="nav-btn next" type="button" data-tooltip="Next" aria-label="Next">›</button>
       <div id="lightbox-caption" class="caption"></div>
     </div>
-  <script type="module" src="/js/app.js?v=108"></script>
+  <script type="module" src="/js/app.js"></script>
   </body>
   </html>`;
   }
