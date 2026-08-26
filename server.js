@@ -79,6 +79,7 @@ const { createLibraryStateService } = require('./server/library-state');
 const { createLibraryRepository } = require('./server/library-repository');
 const { createLibraryScanner, emptyTotals, addTotals } = require('./server/library-scanner');
 const { createRescanCheckpoints } = require('./server/rescan-checkpoints');
+const { createImportPathLock } = require('./server/import-path-lock');
 const {
   canonicalRemoteUrl,
   canonicalPageUrl,
@@ -132,6 +133,7 @@ let stopAfterCurrentModelRequested = false;
 let pauseRescanAllRequested = false;
 let lastState = emptyState('starting');
 const activeImportGalleryPaths = new Set();
+const importPathLock = createImportPathLock({ nowIso });
 let lastForegroundActivityAt = 0;
 let shuttingDown = false;
 let shutdownTimer = null;
@@ -365,6 +367,7 @@ const {
   favoritesResponse,
   galleryImagesResponse,
   galleryImagesResponseForUser,
+  userStateForRequest,
   stateForUser,
 } = createUserLibraryService({
   db,
@@ -381,6 +384,7 @@ const {
   publicUser,
   seenDataForUser,
   gallerySeenSummary,
+  unseenStatsForUser,
   runtimeStats,
   appMetadata,
 });
@@ -477,6 +481,8 @@ const libraryScanner = createLibraryScanner({
   loadImportDb,
   saveImportDb,
   activeImportGalleryPaths,
+  isImportPathActive: importPathLock.isActive,
+  modelHasActiveImportPath: importPathLock.modelHasActive,
   dedupeScannedGalleries,
   gallerySummary,
   latestGallerySummaries,
@@ -670,6 +676,8 @@ const { importModel: importSourceModelIntoCurrentJob } = createModelImporter({
   readImageFiles,
   nextGalleryName,
   activeImportGalleryPaths,
+  markImportPath: importPathLock.mark,
+  clearImportPath: importPathLock.clear,
   extractDetailUrls,
   resolveGalleryImageUrls,
   downloadGalleryImagesPartial,
@@ -728,6 +736,8 @@ const { verify: verifyKnownGalleries } = createGalleryVerifier({
   mediaRoot,
   galleryStorageStats,
   activeImportGalleryPaths,
+  markImportPath: importPathLock.mark,
+  clearImportPath: importPathLock.clear,
   mkdirp,
   resolveGalleryImageUrls,
   downloadGalleryImagesPartial,
@@ -755,6 +765,8 @@ const { importGallery: importDirectGallery } = createDirectGalleryImporter({
   nextGalleryName,
   rememberImportedGallery,
   activeImportGalleryPaths,
+  markImportPath: importPathLock.mark,
+  clearImportPath: importPathLock.clear,
   downloadGalleryImagesPartial,
   galleryStorageStats,
   refreshModelInState,
@@ -963,8 +975,8 @@ const adminRouteContext = {
   sendJson,
   readRequestBody,
   importSnapshot,
-  stateForUser,
   appMetadata,
+  getState: () => lastState,
   parseAutoRescanDays,
   defaultVersionLabel: DEFAULT_VERSION_LABEL,
   setVersionLabel,
@@ -998,6 +1010,7 @@ const siteRouteContext = {
   sendHtml,
   sendText,
   stateForUser,
+  userStateForRequest,
   galleryImagesResponseForUser,
   handleEvents,
   absoluteUrlForRequest,

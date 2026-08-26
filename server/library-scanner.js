@@ -49,6 +49,8 @@ function createLibraryScanner({
   loadImportDb,
   saveImportDb,
   activeImportGalleryPaths,
+  isImportPathActive,
+  modelHasActiveImportPath,
   dedupeScannedGalleries,
   gallerySummary,
   latestGallerySummaries,
@@ -134,12 +136,14 @@ function createLibraryScanner({
     const totals = emptyTotals();
     const modelDbId = upsertModelRecord(modelName, normalizeModelName(modelName), '', { touchUpdatedAt: false });
     const hasActiveImportGallery = Array.from(activeImportGalleryPaths)
-      .some(galleryPath => galleryPath === modelPath || galleryPath.startsWith(`${modelPath}${path.sep}`));
+      .some(galleryPath => galleryPath === modelPath || galleryPath.startsWith(`${modelPath}${path.sep}`))
+      || modelHasActiveImportPath(modelPath);
     const repairedSequence = !hasActiveImportGallery && repairGallerySequence(modelName, modelPath, importDb);
     const galleryRecords = galleryRecordsForModel(modelName);
     const scannedGalleries = [];
 
     for (const galleryName of readDirs(modelPath)) {
+      if (isImportPathActive(path.join(modelPath, galleryName))) continue;
       const gallery = await scanGallery(modelName, galleryName, galleryRecords.get(galleryName) || null);
       if (!gallery.count) continue;
       gallery.dbId = upsertGalleryRecord(modelName, normalizeModelName(modelName), galleryName, {

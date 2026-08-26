@@ -54,6 +54,8 @@ function fixture({ remoteCount = 2, localCount = 2, missingThumbs = 0, provider 
       missingThumbs,
     }),
     activeImportGalleryPaths: activePaths,
+    markImportPath() {},
+    clearImportPath() {},
     mkdirp: target => fs.mkdirSync(target, { recursive: true }),
     resolveGalleryImageUrls: async detailUrls => ({
       successes: detailUrls.map((detailUrl, index) => ({ index, detailUrl, imageUrl: `image-${index}` })),

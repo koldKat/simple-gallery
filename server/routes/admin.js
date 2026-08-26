@@ -3,7 +3,7 @@
 function handleAdminRoute(ctx, req, res, url) {
   if (!url.pathname.startsWith('/api/admin/')) return false;
   const {
-    isLocalhostRequest, sendJson, readRequestBody, importSnapshot, stateForUser, appMetadata,
+    isLocalhostRequest, sendJson, readRequestBody, importSnapshot, appMetadata, getState,
     parseAutoRescanDays, defaultVersionLabel, setVersionLabel, setAppSetting,
     normalizeAutoRescanTime, normalizedJsonSetting, scheduleAutoRescan, broadcast, stateNotice,
     getImportJob, requestWorker, scanLibrary, getScannedUrlPayload, auditSavedModelUrls,
@@ -21,9 +21,15 @@ function handleAdminRoute(ctx, req, res, url) {
     return true;
   }
   if (url.pathname === '/api/admin/state') {
-    const payload = stateForUser(req);
-    payload.app = appMetadata({ includePrivate: true });
-    sendJson(res, 200, payload);
+    const state = getState ? getState() : null;
+    sendJson(res, 200, {
+      status: state?.status || 'starting',
+      message: state?.message || '',
+      scannedAt: state?.scannedAt || null,
+      totals: state?.totals || {},
+      runtime: runtimeStats(),
+      app: appMetadata({ includePrivate: true }),
+    });
     return true;
   }
   if (url.pathname === '/api/admin/app-settings' && req.method === 'POST') {

@@ -44,6 +44,7 @@ export function createAppNavigationController({
     releaseDecodedCache();
     state.activeImages = [];
     state.activeGalleryId = null;
+    state.activeImageSource = null;
     state.imagesLoading = false;
   }
 
@@ -138,7 +139,6 @@ export function createAppNavigationController({
     }
     applySeenOverrides(data);
     state.data = data;
-    state.dataUserId = data.user?.id || null;
     state.user = data.user || null;
     const selectedModelChanged = previousModelRevision !== modelRevision(currentModel());
     if (libraryChanged && (previousMode !== 'model' || selectedModelChanged)) {

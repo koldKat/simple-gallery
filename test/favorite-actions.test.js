@@ -67,3 +67,26 @@ test('gallery favorite mutations update every in-memory representation', async (
   assert.equal(calls.api[0][0], '/api/favorites/gallery');
   assert.equal(calls.render, 1);
 });
+
+test('favorite-image toggles defer favorites reload while browsing favorites lightbox snapshots', async () => {
+  const { createFavoriteActionsController } = await loadModule();
+  let deferred = 0;
+  let loaded = 0;
+  const deferredController = {
+    patchImageFavorite() {},
+    shouldDeferRefresh: () => true,
+    markRefreshPending: () => { deferred += 1; },
+  };
+  const context = fixture(createFavoriteActionsController, {
+    getFavoritesController: () => deferredController,
+    loadFavorites: async () => { loaded += 1; },
+  });
+  context.state.mode = 'favorites';
+  context.state.activeGalleryId = 'favorites';
+
+  await context.controller.toggleImage(context.image);
+
+  assert.equal(deferred, 1);
+  assert.equal(loaded, 0);
+  assert.equal(context.calls.lightbox, 1);
+});

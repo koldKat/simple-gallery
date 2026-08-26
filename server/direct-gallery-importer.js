@@ -40,6 +40,8 @@ function createDirectGalleryImporter(ctx) {
     nextGalleryName,
     rememberImportedGallery,
     activeImportGalleryPaths,
+    markImportPath,
+    clearImportPath,
     downloadGalleryImagesPartial,
     galleryStorageStats,
     refreshModelInState,
@@ -120,8 +122,9 @@ function createDirectGalleryImporter(ctx) {
       const extracted = galleryProviderRegistry.extract(provider, html, sourceUrl);
       const galleryName = nextGalleryName(modelPath);
       galleryPath = path.join(modelPath, galleryName);
-      mkdirp(galleryPath);
+      markImportPath(galleryPath);
       activeImportGalleryPaths.add(galleryPath);
+      mkdirp(galleryPath);
       job.current = {
         gallery: galleryName,
         title: extracted.title,
@@ -189,6 +192,7 @@ function createDirectGalleryImporter(ctx) {
       return importSnapshot();
     } finally {
       if (galleryPath) activeImportGalleryPaths.delete(galleryPath);
+      if (galleryPath) clearImportPath(galleryPath);
     }
   }
 

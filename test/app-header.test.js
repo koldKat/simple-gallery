@@ -33,7 +33,7 @@ function fixture(createAppHeaderController) {
     selectedModel: 'alpha',
     selectedGallery: 'alpha/001',
     user: { id: 4, favoriteCount: 12 },
-    dataUserId: 4,
+    userStats: { models: 1, galleries: 1, images: 2 },
     data: {
       app: { name: 'Gallery', homeTitle: 'Gallery Home', tagline: 'Tag', versionLabel: 'v1' },
       totals: { models: 1, galleries: 1, images: 3 },
@@ -81,7 +81,7 @@ test('header metadata follows the selected gallery route', async () => {
   assert.equal(elements.versionLabel.textContent, 'v1');
 });
 
-test('header stats derive unseen totals for the authenticated state owner', async () => {
+test('header stats render the supplied unseen totals for the authenticated user', async () => {
   const { createAppHeaderController } = await loadModule();
   const { controller, elements, state } = fixture(createAppHeaderController);
 

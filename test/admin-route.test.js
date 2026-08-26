@@ -33,6 +33,35 @@ test('admin route rejects remote requests before dispatch', () => {
   assert.deepEqual(output.calls, [{ status: 403, payload: { error: 'Admin API is only available from localhost.' } }]);
 });
 
+test('admin state is returned without the full library payload', () => {
+  const output = recorder();
+  const handled = handleAdminRoute({
+    isLocalhostRequest: () => true,
+    sendJson: output.sendJson,
+    getState: () => ({
+      status: 'ready',
+      message: 'Loaded',
+      scannedAt: 'now',
+      totals: { models: 1, galleries: 2, images: 3 },
+    }),
+    runtimeStats: () => ({ rssBytes: 123 }),
+    appMetadata: () => ({ versionLabel: 'v1', lastSourceUrl: 'https://example.test/model/A' }),
+  }, {}, {}, { pathname: '/api/admin/state' });
+
+  assert.equal(handled, true);
+  assert.deepEqual(output.calls, [{
+    status: 200,
+    payload: {
+      status: 'ready',
+      message: 'Loaded',
+      scannedAt: 'now',
+      totals: { models: 1, galleries: 2, images: 3 },
+      runtime: { rssBytes: 123 },
+      app: { versionLabel: 'v1', lastSourceUrl: 'https://example.test/model/A' },
+    },
+  }]);
+});
+
 test('admin route reads live loaded-model state through its getter', () => {
   const output = recorder();
   let loaded = null;

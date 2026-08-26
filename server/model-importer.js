@@ -28,6 +28,8 @@ function createModelImporter(ctx) {
     readImageFiles,
     nextGalleryName,
     activeImportGalleryPaths,
+    markImportPath,
+    clearImportPath,
     extractDetailUrls,
     resolveGalleryImageUrls,
     downloadGalleryImagesPartial,
@@ -116,12 +118,13 @@ function createModelImporter(ctx) {
 
         const galleryName = nextGalleryName(modelPath);
         const galleryPath = path.join(modelPath, galleryName);
-        mkdirp(galleryPath);
+        markImportPath(galleryPath);
         activeImportGalleryPaths.add(galleryPath);
-        job.current = { gallery: galleryName, title: gallery.title, sourceUrl: gallery.sourceUrl, images: 0, imported: 0 };
-        updateImport(`Fetching gallery ${galleryName}: ${gallery.title}`);
 
         try {
+          mkdirp(galleryPath);
+          job.current = { gallery: galleryName, title: gallery.title, sourceUrl: gallery.sourceUrl, images: 0, imported: 0 };
+          updateImport(`Fetching gallery ${galleryName}: ${gallery.title}`);
           const galleryHtml = await fetchText(gallery.sourceUrl);
           const detailUrls = extractDetailUrls(galleryHtml, gallery.sourceUrl);
           job.current.images = detailUrls.length;
@@ -181,6 +184,7 @@ function createModelImporter(ctx) {
           updateImport(`Failed gallery ${galleryName}: ${error.message}`);
         } finally {
           activeImportGalleryPaths.delete(galleryPath);
+          clearImportPath(galleryPath);
         }
       }
 

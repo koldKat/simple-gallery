@@ -64,17 +64,8 @@ export function createAppHeaderController({
       elements.userStats.textContent = '';
       return;
     }
-    if (data && state.dataUserId === state.user.id) {
-      state.userStats = (data.models || []).reduce((acc, model) => {
-        if (!model.seen) acc.models += 1;
-        for (const gallery of model.galleries || []) {
-          if (!gallery.seen) acc.galleries += 1;
-          acc.images += Math.max(0, Number(gallery.count || 0) - Number(gallery.seenCount || 0));
-        }
-        return acc;
-      }, { models: 0, galleries: 0, images: 0 });
-    }
     if (state.userStats) renderStatsBreakdown(elements.userStats, state.userStats);
+    else elements.userStats.textContent = '';
   }
 
   function renderFavoritesButton() {

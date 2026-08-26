@@ -22,6 +22,7 @@ export function createFavoritesController(options) {
   let favoritesLoadPromise = null;
   let favoriteImageGroupPages = new Map();
   let randomFavoritesLoading = false;
+  let pendingFavoritesRefresh = false;
 
   function renderFavoritesLoading() {
     const count = Number(state.user?.favoriteCount || 0);
@@ -67,7 +68,8 @@ export function createFavoritesController(options) {
     openImage.append(fav);
     openImage.addEventListener('click', () => {
       state.activeGalleryId = 'favorites';
-      state.activeImages = activeImages;
+      state.activeImageSource = 'favorites-group';
+      state.activeImages = activeImages.slice();
       const index = activeImages.findIndex(entry => entry.dbId === image.dbId && entry.name === image.name);
       openLightbox(Math.max(0, index));
     });
@@ -146,7 +148,8 @@ export function createFavoritesController(options) {
       const images = payload.images || [];
       if (!images.length) return;
       state.activeGalleryId = 'favorites';
-      state.activeImages = images;
+      state.activeImageSource = 'favorites-random';
+      state.activeImages = images.slice();
       openLightbox(0);
     } catch (error) {
       showNotice(error.message);
@@ -384,10 +387,27 @@ export function createFavoritesController(options) {
     }
   }
 
+  function shouldDeferRefresh() {
+    return state.mode === 'favorites' && Array.isArray(state.activeImages) && state.activeImages.length > 0 && String(state.activeGalleryId || '') === 'favorites';
+  }
+
+  function markRefreshPending() {
+    pendingFavoritesRefresh = true;
+  }
+
+  async function flushPendingRefresh() {
+    if (!pendingFavoritesRefresh) return null;
+    pendingFavoritesRefresh = false;
+    return loadFavorites();
+  }
+
   return {
     backdropUrls,
+    flushPendingRefresh,
     load: loadFavorites,
     patchImageFavorite,
     render: renderFavorites,
+    shouldDeferRefresh,
+    markRefreshPending,
   };
 }

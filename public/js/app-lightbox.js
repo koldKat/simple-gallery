@@ -12,6 +12,7 @@ export function createLightboxController(options) {
     showNotice,
     warmDecodedWindow,
     rememberDecodedImage,
+    onClose,
     windowObject = window,
     documentObject = document,
     createImage = () => new Image(),
@@ -165,6 +166,7 @@ export function createLightboxController(options) {
     elements.lightboxImg.classList.remove('is-loading', 'is-error');
     elements.lightboxLoading.hidden = true;
     selectedImageKey = '';
+    if (typeof onClose === 'function') onClose();
     if (!options.fromHistory && historyActive && windowObject.history.state?.lightbox) {
       historyActive = false;
       windowObject.history.back();

@@ -20,6 +20,8 @@ function createGalleryVerifier(ctx) {
     mediaRoot,
     galleryStorageStats,
     activeImportGalleryPaths,
+    markImportPath,
+    clearImportPath,
     mkdirp,
     resolveGalleryImageUrls,
     downloadGalleryImagesPartial,
@@ -67,6 +69,7 @@ function createGalleryVerifier(ctx) {
     const backupPath = path.join(parentPath, `.gallery-previous-${galleryName}-${process.pid}-${Date.now()}`);
     let swapped = false;
     let committed = false;
+    markImportPath(galleryPath);
     activeImportGalleryPaths.add(galleryPath);
     try {
       fs.rmSync(stagingPath, { recursive: true, force: true });
@@ -143,6 +146,7 @@ function createGalleryVerifier(ctx) {
       fs.rmSync(stagingPath, { recursive: true, force: true });
       if (committed) fs.rmSync(backupPath, { recursive: true, force: true });
       activeImportGalleryPaths.delete(galleryPath);
+      clearImportPath(galleryPath);
     }
   }
 

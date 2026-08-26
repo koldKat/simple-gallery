@@ -12,6 +12,7 @@ Node.js and SQLite gallery application served by `server.js`.
 - `server/source-url-registry.js` owns saved and ignored source URLs plus library matching audits.
 - `server/import-state-store.js` translates importer model/gallery state to and from normalized database rows.
 - `server/import-library.js` owns importer manifests, source-to-folder matching, gallery numbering, and local sequence repair.
+- `server/import-path-lock.js` publishes filesystem locks that prevent the web scanner from indexing or renumbering galleries while a worker process is importing or repairing them.
 - `server/source-model-loader.js` owns paginated source model discovery, missing-model filtering, and loaded-list state.
 - `server/gallery-transfer.js` owns full-image URL resolution, bounded downloads, foreground pauses, and partial transfer failures.
 - `server/import-progress.js` owns Admin import snapshots, bounded logs, and progress broadcast throttling.
@@ -51,7 +52,7 @@ node server.js
 
 The default address is `http://localhost:3020/`. Set `PORT`, `DB_PATH`, `DB_BACKUP_DIR`, or `MEDIA_ROOT` to override the corresponding neutral defaults. The web process defaults to at most 128 concurrent static-file reads and 1,024 queued static reads; override these safeguards with `STATIC_READ_CONCURRENCY` and `STATIC_READ_QUEUE_LIMIT` when the host's file-descriptor budget requires different limits.
 
-Rescan All and other imports run in a child worker process so their network and image-processing descriptors are isolated from the web process. Worker spawn, exit, and IPC failures are returned to the requesting Admin action without terminating the web process. If web traffic reaches the configured static-read capacity, excess requests receive a retryable `503` response instead of exhausting file descriptors and terminating the server.
+Rescan All and other imports run in a child worker process so their network and image-processing descriptors are isolated from the web process. Worker spawn, exit, and IPC failures are returned to the requesting Admin action without terminating the web process. Imports and repairs publish per-gallery filesystem locks before creating or replacing content; the web scanner honors those locks, including across processes, so it cannot renumber or index a partially written gallery. Stale locks from terminated processes are removed automatically. If web traffic reaches the configured static-read capacity, excess requests receive a retryable `503` response instead of exhausting file descriptors and terminating the server.
 
 ## Installable App
 
@@ -113,7 +114,7 @@ Visual tooltips are desktop-only. They are suppressed on screens up to 820 pixel
 
 Desktop views use gallery thumbnails as shaded, blurred page backdrops. Home chooses from the 60 latest galleries; Models chooses from model covers; model pages choose from that model's galleries; open galleries choose from their loaded images; and Favorites uses favorite gallery or loaded favorite-image covers. A random cover is selected initially, then changes on a single global 60-second cadence. Navigation only changes the pool used by the next scheduled rotation; it never changes the current backdrop or resets the timer. Covers are preloaded and crossfaded between two fixed layers. Backdrops are disabled at the mobile breakpoint and respect reduced-motion preferences.
 
-Authentication and compact unseen statistics are loaded before the full personalized library state so the account header does not wait for the large state response.
+The public library payload and logged-in personalization are split deliberately. `GET /api/state` returns the shared base library state plus the current public user summary, while `GET /api/user-state` returns only compact per-user overlay data such as favorite model ids, favorite gallery ids, gallery seen counts, and unseen totals. The browser renders the base library first, then applies the overlay so logged-in startup does not wait on full-library personalization.
 
 ## Admin Configuration
 

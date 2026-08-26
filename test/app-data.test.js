@@ -15,13 +15,20 @@ function response(payload, ok = true) {
 }
 
 function fixture(createAppDataService, fetchImpl) {
-  const state = { user: null, userStats: null, data: { latest: [{ id: 'one' }] } };
+  const state = {
+    user: null,
+    userStats: null,
+    userLibrary: { loadedForUserId: null, unseenStats: null },
+    data: { latest: [{ id: 'one' }] },
+  };
   const calls = { favorites: 0, headers: 0, renders: 0, state: [] };
   const service = createAppDataService({
     state,
     fetchImpl,
     getGalleryCache: () => ({ fetch: async gallery => ({ id: gallery.id }) }),
     setData: data => calls.state.push(data),
+    applyUserLibraryState: payload => { calls.userState = (calls.userState || []); calls.userState.push(payload); },
+    clearUserLibraryState: () => { calls.cleared = (calls.cleared || 0) + 1; },
     render: () => { calls.renders += 1; },
     renderAuth() {},
     syncUserOnlyUi() {},
@@ -95,4 +102,33 @@ test('repeated scan notifications coalesce state loads without concurrent or sta
   await Promise.all([first, second, third]);
 
   assert.deepEqual(calls.state.map(item => item.scannedAt), ['first', 'latest']);
+});
+
+test('user overlay requests deduplicate per user but refetch when the user changes', async () => {
+  const { createAppDataService } = await loadModule();
+  const pending = [];
+  const { calls, service, state } = fixture(createAppDataService, async url => {
+    if (url === '/api/user-state') {
+      return new Promise(resolve => pending.push(resolve));
+    }
+    return response({});
+  });
+
+  state.user = { id: 1 };
+  const first = service.loadUserLibraryState(1);
+  const second = service.loadUserLibraryState(1);
+  assert.equal(first, second);
+  assert.equal(pending.length, 1);
+
+  state.user = { id: 2 };
+  const third = service.loadUserLibraryState(2);
+  assert.notEqual(third, first);
+  assert.equal(pending.length, 2);
+
+  pending[0](response({ user: { id: 1 }, favoriteGalleryIds: [1] }));
+  pending[1](response({ user: { id: 2 }, favoriteGalleryIds: [2] }));
+  await Promise.all([first, second, third]);
+
+  assert.equal((calls.userState || []).length, 1);
+  assert.deepEqual(calls.userState[0].user, { id: 2 });
 });

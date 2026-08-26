@@ -14,6 +14,7 @@ function fixture() {
     sendHtml: (_res, status, body) => calls.push(['html', status, body]),
     sendText: (_res, status, body, type) => calls.push(['text', status, body, type]),
     stateForUser: () => ({ status: 'ready' }),
+    userStateForRequest: () => ({ favoriteGalleryIds: [3] }),
     galleryImagesResponseForUser: (_req, model, gallery) => ({ model, gallery }),
     handleEvents: () => calls.push(['events']),
     absoluteUrlForRequest: (_req, route) => `https://example.test${route}`,
@@ -40,6 +41,15 @@ test('gallery API query parameters are delegated to the user library response', 
 
   assert.equal(handled, true);
   assert.deepEqual(calls, [['json', 200, { model: 'alpha', gallery: '002' }]]);
+});
+
+test('user overlay API is delegated to the compact user state response', () => {
+  const { calls, context } = fixture();
+  const url = new URL('https://example.test/api/user-state');
+  const handled = handleSiteRoute(context, { method: 'GET' }, {}, url);
+
+  assert.equal(handled, true);
+  assert.deepEqual(calls, [['json', 200, { favoriteGalleryIds: [3] }]]);
 });
 
 test('encoded model and gallery routes resolve server-rendered entities', () => {

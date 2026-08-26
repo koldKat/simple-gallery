@@ -42,13 +42,60 @@ const state = {
   imagesLoading: false,
   activeImages: [],
   activeGalleryId: null,
+  activeImageSource: null,
   user: null,
   userStats: null,
-  dataUserId: null,
+  userLibrary: emptyUserLibraryState(),
   favorites: null,
   favoritesLoading: false,
   favoritesError: null,
 };
+
+function emptyUserLibraryState() {
+  return {
+    loadedForUserId: null,
+    favoriteModelIds: new Set(),
+    favoriteGalleryIds: new Set(),
+    gallerySeenCounts: new Map(),
+    unseenStats: null,
+  };
+}
+
+function clearUserLibraryState() {
+  state.userLibrary = emptyUserLibraryState();
+  state.userStats = null;
+  applyUserLibraryState();
+}
+
+function applyUserLibraryState(payload = null) {
+  if (!state.userLibrary) state.userLibrary = emptyUserLibraryState();
+  if (payload) {
+    state.userLibrary = {
+      loadedForUserId: payload.user?.id || state.user?.id || null,
+      favoriteModelIds: new Set(payload.favoriteModelIds || []),
+      favoriteGalleryIds: new Set((payload.favoriteGalleryIds || []).map(Number)),
+      gallerySeenCounts: new Map((payload.gallerySeenCounts || []).map(([galleryId, count]) => [Number(galleryId), Number(count || 0)])),
+      unseenStats: payload.unseenStats || null,
+    };
+    state.userStats = payload.unseenStats || null;
+  }
+  const favoriteModelIds = state.userLibrary.favoriteModelIds;
+  const favoriteGalleryIds = state.userLibrary.favoriteGalleryIds;
+  const gallerySeenCounts = state.userLibrary.gallerySeenCounts;
+  const applyGallery = gallery => {
+    const count = Number(gallery.count || 0);
+    const seenCount = Number(gallerySeenCounts.get(Number(gallery.dbId || 0)) || 0);
+    gallery.favorite = Boolean(gallery.dbId && favoriteGalleryIds.has(Number(gallery.dbId)));
+    gallery.seenCount = Math.min(seenCount, count);
+    gallery.seen = count > 0 && gallery.seenCount >= count;
+  };
+  for (const model of state.data?.models || []) {
+    model.favorite = favoriteModelIds.has(model.id);
+    for (const gallery of model.galleries || []) applyGallery(gallery);
+    recomputeModelSeen(model);
+  }
+  for (const gallery of state.data?.latest || []) applyGallery(gallery);
+}
 
 const STORAGE_KEYS = {
   hideSeenModels: 'simple-gallery:hide-seen-models',
@@ -155,6 +202,8 @@ const appDataService = createAppDataService({
   state,
   getGalleryCache: () => galleryCache,
   setData: data => setData(data),
+  applyUserLibraryState: payload => applyUserLibraryState(payload),
+  clearUserLibraryState: () => clearUserLibraryState(),
   render: () => render(),
   renderAuth: () => renderAuth(),
   syncUserOnlyUi: () => syncUserOnlyUi(),
@@ -172,6 +221,7 @@ const {
   loadCurrentUser,
   loadCurrentUserStats,
   loadState,
+  loadUserLibraryState,
   recordView,
   saveUserSettings,
 } = appDataService;
@@ -300,6 +350,9 @@ const lightboxController = createLightboxController({
   showNotice,
   warmDecodedWindow: warmDecodedLightboxWindow,
   rememberDecodedImage: (url, image) => imagePreloader.rememberDecodedImage(url, image),
+  onClose: () => {
+    favoritesController.flushPendingRefresh?.().catch(error => showNotice(error.message));
+  },
 });
 const openLightbox = index => lightboxController.open(index);
 const closeLightbox = options => lightboxController.close(options);
@@ -339,6 +392,7 @@ const authController = createAuthController({
   loadState,
   saveUserSettings,
   saveAnonymousPreloadSettings,
+  clearUserLibraryState: () => clearUserLibraryState(),
   showNotice,
 });
 const renderAuth = () => authController.render();

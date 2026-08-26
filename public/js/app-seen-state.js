@@ -16,6 +16,27 @@ export function createSeenStateController({
 }) {
   const overrides = new Map();
 
+  function syncUserStatsDelta(previousSeenCount, nextSeenCount, galleryCount) {
+    if (!state.userStats) return;
+    const previousSeen = Number(previousSeenCount || 0);
+    const nextSeen = Number(nextSeenCount || 0);
+    const total = Number(galleryCount || 0);
+    const previousGallerySeen = total > 0 && previousSeen >= total;
+    const nextGallerySeen = total > 0 && nextSeen >= total;
+    state.userStats.images = Math.max(0, Number(state.userStats.images || 0) + previousSeen - nextSeen);
+    if (!previousGallerySeen && nextGallerySeen) state.userStats.galleries = Math.max(0, Number(state.userStats.galleries || 0) - 1);
+    if (previousGallerySeen && !nextGallerySeen) state.userStats.galleries = Math.max(0, Number(state.userStats.galleries || 0) + 1);
+  }
+
+  function syncUserModelStats() {
+    if (!state.userStats) return;
+    let unseenModels = 0;
+    for (const model of state.data?.models || []) {
+      if (!model.seen) unseenModels += 1;
+    }
+    state.userStats.models = unseenModels;
+  }
+
   function gallerySummary(dbId) {
     for (const model of state.data?.models || []) {
       for (const gallery of model.galleries || []) {
@@ -34,6 +55,7 @@ export function createSeenStateController({
   function remember(galleryDbId, seenCount, seen) {
     const dbId = Number(galleryDbId || 0);
     if (!dbId) return;
+    if (state.userLibrary) state.userLibrary.gallerySeenCounts.set(dbId, Number(seenCount || 0));
     overrides.set(dbId, { seen: Boolean(seen), seenCount: Number(seenCount || 0) });
   }
 
@@ -160,9 +182,13 @@ export function createSeenStateController({
       return;
     }
     const previous = Boolean(image.seen);
+    const previousSummary = activeGallerySummary() || { seenCount: 0, seen: false };
     const imageIndex = state.activeImages.indexOf(image);
     image.seen = Boolean(seen);
     syncActiveGallery();
+    const optimisticSummary = activeGallerySummary() || previousSummary;
+    syncUserStatsDelta(previousSummary.seenCount, optimisticSummary.seenCount, state.activeImages.length);
+    syncUserModelStats();
     if (options.render !== false) renderSeenState({ imageIndex });
     renderLightboxMeta();
     try {
@@ -176,6 +202,7 @@ export function createSeenStateController({
         : { seenCount: payload.seenCount, seen: payload.seen };
       updateGallery(image.dbId, summary.seenCount, summary.seen);
       remember(image.dbId, summary.seenCount, summary.seen);
+      syncUserModelStats();
       patchCached(image.dbId, summary.seenCount, summary.seen, {
         imageName: image.name,
         imageSeen: seen,
@@ -185,6 +212,9 @@ export function createSeenStateController({
     } catch (error) {
       image.seen = previous;
       syncActiveGallery();
+      const revertedSummary = activeGallerySummary() || previousSummary;
+      syncUserStatsDelta(optimisticSummary.seenCount, revertedSummary.seenCount, state.activeImages.length);
+      syncUserModelStats();
       if (options.render !== false) renderSeenState({ imageIndex });
       renderLightboxMeta();
       throw error;
@@ -193,6 +223,8 @@ export function createSeenStateController({
 
   async function setGallerySeen(gallery, seen) {
     if (!state.user || !gallery?.dbId) return;
+    const previousSeenCount = Number(gallery.seenCount || 0);
+    const galleryCount = Number(gallery.count || 0);
     const payload = await fetchJson('/api/seen/gallery', {
       method: seen ? 'POST' : 'DELETE',
       body: JSON.stringify({ galleryId: gallery.dbId }),
@@ -201,6 +233,8 @@ export function createSeenStateController({
     gallery.seen = payload.seen;
     updateGallery(gallery.dbId, payload.seenCount, payload.seen);
     remember(gallery.dbId, payload.seenCount, payload.seen);
+    syncUserStatsDelta(previousSeenCount, payload.seenCount, galleryCount);
+    syncUserModelStats();
     patchCached(gallery.dbId, payload.seenCount, payload.seen, { allImages: true });
     for (const image of state.activeImages) {
       if (image.dbId === gallery.dbId) image.seen = Boolean(seen);
@@ -219,16 +253,19 @@ export function createSeenStateController({
     for (const gallery of model.galleries || []) {
       const summary = seenByGalleryId.get(gallery.dbId);
       if (!summary) continue;
+      const previousSeenCount = Number(gallery.seenCount || 0);
       gallery.seenCount = summary.seenCount;
       gallery.seen = seen ? summary.count > 0 && summary.seenCount >= summary.count : false;
       updateGallery(gallery.dbId, gallery.seenCount, gallery.seen);
       remember(gallery.dbId, gallery.seenCount, gallery.seen);
+      syncUserStatsDelta(previousSeenCount, gallery.seenCount, summary.count);
       patchCached(gallery.dbId, gallery.seenCount, gallery.seen, { allImages: true });
     }
     for (const image of state.activeImages) {
       if (seenByGalleryId.has(image.dbId)) image.seen = Boolean(seen);
     }
     recomputeModelSeen(model);
+    syncUserModelStats();
     renderSeenState({ full: true });
     updateLightbox();
   }

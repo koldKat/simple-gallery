@@ -57,6 +57,8 @@ function fixture({ known = false, invalid = false } = {}) {
     readImageFiles: () => [],
     nextGalleryName: () => '001',
     activeImportGalleryPaths: new Set(),
+    markImportPath() {},
+    clearImportPath() {},
     extractDetailUrls: () => ['detail-one'],
     resolveGalleryImageUrls: async () => ({
       successes: [{ index: 0, detailUrl: 'detail-one', imageUrl: 'image-one' }],

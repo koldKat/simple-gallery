@@ -88,6 +88,7 @@ function fixture(createLightboxController) {
   const seen = [];
   const favorites = [];
   const decoded = [];
+  let closed = 0;
   const controller = createLightboxController({
     state,
     elements,
@@ -101,11 +102,12 @@ function fixture(createLightboxController) {
     showNotice() {},
     warmDecodedWindow() {},
     rememberDecodedImage: (url, image) => decoded.push({ url, image }),
+    onClose: () => { closed += 1; },
     windowObject,
     documentObject,
     createImage: () => ({ complete: true, naturalWidth: 100 }),
   });
-  return { controller, decoded, elements, favorites, history, seen, state, views };
+  return { closed: () => closed, controller, decoded, elements, favorites, history, seen, state, views };
 }
 
 test('lightbox opens the selected image and records the correct image as seen', async () => {
@@ -160,4 +162,13 @@ test('array replacement preserves the displayed image identity and spacebar favo
   assert.equal(context.state.lightboxIndex, 0);
   assert.equal(context.elements.lightboxImg.src, '/two.jpg');
   assert.deepEqual(context.favorites, ['two.jpg']);
+});
+
+test('closing the lightbox runs the close callback once', async () => {
+  const { createLightboxController } = await loadModule();
+  const context = fixture(createLightboxController);
+  context.controller.open(0);
+  context.controller.close({ fromHistory: true });
+
+  assert.equal(context.closed(), 1);
 });

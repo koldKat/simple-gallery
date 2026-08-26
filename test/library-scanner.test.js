@@ -7,7 +7,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createLibraryScanner, emptyTotals, addTotals } = require('../server/library-scanner');
 
-function fixture() {
+function fixture(overrides = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'simple-gallery-scanner-'));
   const galleryPath = path.join(root, 'alpha', '001');
   const thumbPath = path.join(galleryPath, '.thumbs');
@@ -66,10 +66,12 @@ function fixture() {
     cleanupSeenRecordsForGallery: () => {},
     normalizeModelName: value => value[0].toUpperCase() + value.slice(1),
     sourceSlug: () => 'one',
-    repairGallerySequence: () => false,
+    repairGallerySequence: overrides.repairGallerySequence || (() => false),
     loadImportDb: () => ({ models: {} }),
     saveImportDb: () => assert.fail('unchanged sequences must not be saved'),
     activeImportGalleryPaths: new Set(),
+    isImportPathActive: overrides.isImportPathActive || (() => false),
+    modelHasActiveImportPath: overrides.modelHasActiveImportPath || (() => false),
     dedupeScannedGalleries: galleries => galleries,
     gallerySummary: gallery => ({ ...gallery }),
     latestGallerySummaries: models => models.flatMap(model => model.galleries),
@@ -126,6 +128,20 @@ test('gallery and model scans preserve source metadata and storage totals', asyn
   assert.equal(scanned.model.galleries[0].dbId, 3);
   assert.equal(scanned.totals.totalBytes, 11);
   assert.equal(context.lastGalleryUpsert().title, 'Stored title');
+  context.close();
+});
+
+test('scanner does not repair or index a gallery locked by another process', async () => {
+  const context = fixture({
+    modelHasActiveImportPath: () => true,
+    isImportPathActive: () => true,
+    repairGallerySequence: () => assert.fail('locked model sequence must not be repaired'),
+  });
+
+  const scanned = await context.scanner.scanModelState('alpha');
+
+  assert.equal(scanned.model, null);
+  assert.equal(context.galleryUpserts(), 0);
   context.close();
 });
 

@@ -3,6 +3,8 @@ export function createAppDataService({
   fetchImpl = fetch,
   getGalleryCache,
   setData,
+  applyUserLibraryState,
+  clearUserLibraryState,
   render,
   renderAuth,
   syncUserOnlyUi,
@@ -13,6 +15,9 @@ export function createAppDataService({
 }) {
   let stateLoadPromise = null;
   let stateReloadQueued = false;
+  let userStateLoadPromise = null;
+  let userStateLoadUserId = null;
+  let userStateRequestVersion = 0;
 
   async function fetchJson(url, options = {}) {
     const response = await fetchImpl(url, {
@@ -62,6 +67,12 @@ export function createAppDataService({
     syncPreloadForCurrentView();
   }
 
+  function invalidateUserLibraryRequests() {
+    userStateRequestVersion += 1;
+    userStateLoadPromise = null;
+    userStateLoadUserId = null;
+  }
+
   function loadState() {
     if (stateLoadPromise) {
       stateReloadQueued = true;
@@ -71,7 +82,15 @@ export function createAppDataService({
       do {
         stateReloadQueued = false;
         const response = await fetchImpl('/api/state', { cache: 'no-store' });
-        setData(await response.json());
+        const payload = await response.json();
+        setData(payload);
+        if (payload.user?.id) {
+          loadUserLibraryState(payload.user.id).catch(error => showNotice(error.message));
+        } else {
+          invalidateUserLibraryRequests();
+          clearUserLibraryState();
+          render();
+        }
       } while (stateReloadQueued);
     })().finally(() => {
       stateLoadPromise = null;
@@ -83,7 +102,11 @@ export function createAppDataService({
     const payload = await fetchJson('/api/auth/me', { method: 'GET' });
     const previousUserId = state.user?.id || null;
     state.user = payload.user || null;
-    if ((state.user?.id || null) !== previousUserId) state.userStats = null;
+    if ((state.user?.id || null) !== previousUserId) {
+      invalidateUserLibraryRequests();
+      state.userStats = null;
+      clearUserLibraryState();
+    }
     renderAuth();
     syncUserOnlyUi();
     renderHeaderStats();
@@ -96,11 +119,42 @@ export function createAppDataService({
       renderHeaderStats();
       return;
     }
+    if (state.userLibrary?.loadedForUserId === state.user.id && state.userLibrary?.unseenStats) {
+      state.userStats = state.userLibrary.unseenStats;
+      renderHeaderStats();
+      return;
+    }
     const userId = state.user.id;
     const payload = await fetchJson('/api/auth/stats', { method: 'GET' });
     if (state.user?.id !== userId) return;
     state.userStats = payload.stats || null;
     renderHeaderStats();
+  }
+
+  async function loadUserLibraryState(expectedUserId = state.user?.id || null) {
+    if (!expectedUserId) {
+      invalidateUserLibraryRequests();
+      clearUserLibraryState();
+      render();
+      return null;
+    }
+    if (userStateLoadPromise && userStateLoadUserId === expectedUserId) return userStateLoadPromise;
+    const requestVersion = ++userStateRequestVersion;
+    userStateLoadUserId = expectedUserId;
+    userStateLoadPromise = (async () => {
+      const payload = await fetchJson('/api/user-state', { method: 'GET' });
+      if (userStateRequestVersion !== requestVersion) return null;
+      if ((state.user?.id || null) !== expectedUserId) return null;
+      applyUserLibraryState(payload);
+      render();
+      return payload;
+    })().finally(() => {
+      if (userStateRequestVersion === requestVersion) {
+        userStateLoadPromise = null;
+        userStateLoadUserId = null;
+      }
+    });
+    return userStateLoadPromise;
   }
 
   return {
@@ -112,6 +166,7 @@ export function createAppDataService({
     loadCurrentUser,
     loadCurrentUserStats,
     loadState,
+    loadUserLibraryState,
     recordView,
     saveUserSettings,
   };

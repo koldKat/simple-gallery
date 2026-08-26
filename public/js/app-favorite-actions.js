@@ -21,12 +21,21 @@ export function createFavoriteActionsController({
   }
 
   function updateModel(modelId, favorite) {
+    if (state.userLibrary) {
+      if (favorite) state.userLibrary.favoriteModelIds.add(modelId);
+      else state.userLibrary.favoriteModelIds.delete(modelId);
+    }
     for (const model of state.data?.models || []) {
       if (model.id === modelId) model.favorite = favorite;
     }
   }
 
   function updateGallery(dbId, favorite) {
+    const numericDbId = Number(dbId || 0);
+    if (state.userLibrary && numericDbId) {
+      if (favorite) state.userLibrary.favoriteGalleryIds.add(numericDbId);
+      else state.userLibrary.favoriteGalleryIds.delete(numericDbId);
+    }
     for (const model of state.data?.models || []) {
       for (const gallery of model.galleries || []) {
         if (gallery.dbId === dbId) gallery.favorite = favorite;
@@ -96,7 +105,12 @@ export function createFavoriteActionsController({
     updateImage(image.dbId, image.name, nextFavorite);
     updateFavoriteCount(payload, nextFavorite);
     if (state.mode === 'favorites') {
-      await loadFavorites();
+      const favoritesController = getFavoritesController?.();
+      if (favoritesController?.shouldDeferRefresh?.()) {
+        favoritesController.markRefreshPending?.();
+      } else {
+        await loadFavorites();
+      }
       renderLightboxMeta();
       return;
     }

@@ -45,6 +45,7 @@ function fixture(createAuthController, options = {}) {
     mode: options.mode || 'home',
     user: options.user || null,
     userStats: { seen: 1 },
+    userLibrary: { loadedForUserId: 1 },
     favorites: { imageCount: 2 },
   };
   const authElement = new FakeElement('root');
@@ -70,6 +71,10 @@ function fixture(createAuthController, options = {}) {
     loadState: async () => calls.push({ type: 'load-state' }),
     saveUserSettings: async next => { preferences = next; calls.push({ type: 'save-user-settings', next }); },
     saveAnonymousPreloadSettings: next => { preferences = next; calls.push({ type: 'save-anonymous', next }); },
+    clearUserLibraryState: () => {
+      state.userLibrary = { loadedForUserId: null };
+      calls.push({ type: 'clear-user-library' });
+    },
     showNotice: message => calls.push({ type: 'notice', message }),
     documentObject,
   });
@@ -93,7 +98,9 @@ test('login submits credentials and refreshes personalized state in order', asyn
   assert.equal(request.url, '/api/auth/login');
   assert.deepEqual(JSON.parse(request.request.body), { username: 'alex', password: 'secret' });
   assert.deepEqual(context.calls.slice(1).map(call => call.type), [
+    'clear-user-library',
     'sync-user-ui',
+    'header-stats',
     'favorites-button',
     'load-user-stats',
     'load-state',
@@ -127,5 +134,6 @@ test('logout clears private state and leaves Favorites mode', async () => {
   assert.equal(context.state.favorites, null);
   assert.equal(context.state.mode, 'home');
   assert.equal(context.calls[0].url, '/api/auth/logout');
+  assert.equal(context.calls.some(call => call.type === 'clear-user-library'), true);
   assert.equal(context.calls.at(-1).type, 'load-state');
 });

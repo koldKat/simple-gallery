@@ -51,6 +51,8 @@ function fixture({ knownFolder = '', modelRows = null } = {}) {
       remembered = { gallery, folder, imageCount, storage };
     },
     activeImportGalleryPaths: new Set(),
+    markImportPath() {},
+    clearImportPath() {},
     downloadGalleryImagesPartial: async (items, galleryPath, _title, onProgress) => {
       downloadedItems.push(...items);
       onProgress(items.length, items.length);

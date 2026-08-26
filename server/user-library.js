@@ -19,6 +19,7 @@ function createUserLibraryService(options) {
     publicUser,
     seenDataForUser,
     gallerySeenSummary,
+    unseenStatsForUser,
     runtimeStats,
     appMetadata,
   } = options;
@@ -76,15 +77,6 @@ function createUserLibraryService(options) {
 
   function stateForUser(req) {
     const user = currentUser(req);
-    const favorites = favoriteSetsForUser(user?.id);
-    const seenData = seenDataForUser(user?.id);
-    const models = (getState().models || []).map(model => modelForUser(model, favorites, seenData));
-    const latest = (getState().latest || []).map(gallery => ({
-      ...gallery,
-      favorite: Boolean(gallery.dbId && favorites.galleries.has(gallery.dbId)),
-      ...gallerySeenSummary(gallery, seenData),
-    }));
-
     return {
       status: getState().status,
       message: getState().message,
@@ -92,9 +84,37 @@ function createUserLibraryService(options) {
       totals: getState().totals,
       runtime: runtimeStats(),
       app: appMetadata(),
-      models,
-      latest,
+      models: getState().models || [],
+      latest: getState().latest || [],
       user: publicUser(user),
+    };
+  }
+
+  function userStateForRequest(req) {
+    const user = currentUser(req);
+    if (!user) {
+      return {
+        user: null,
+        favoriteModelIds: [],
+        favoriteGalleryIds: [],
+        gallerySeenCounts: [],
+        unseenStats: null,
+      };
+    }
+    const favorites = favoriteSetsForUser(user.id);
+    const seenData = seenDataForUser(user.id);
+    const favoriteModelIds = db.prepare(`
+      SELECT models.folder AS modelId
+      FROM model_favorites
+      JOIN models ON models.id = model_favorites.model_id
+      WHERE model_favorites.user_id = ?
+    `).all(user.id).map(row => row.modelId);
+    return {
+      user: publicUser(user),
+      favoriteModelIds,
+      favoriteGalleryIds: Array.from(favorites.galleries),
+      gallerySeenCounts: Array.from(seenData.galleryCounts.entries()),
+      unseenStats: unseenStatsForUser(user.id),
     };
   }
 
@@ -324,6 +344,7 @@ function createUserLibraryService(options) {
     favoritesResponse,
     galleryImagesResponse,
     galleryImagesResponseForUser,
+    userStateForRequest,
     stateForUser,
   };
 }

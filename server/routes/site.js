@@ -16,6 +16,7 @@ function handleSiteRoute(context, req, res, url) {
     sendHtml,
     sendText,
     stateForUser,
+    userStateForRequest,
     galleryImagesResponseForUser,
     handleEvents,
     absoluteUrlForRequest,
@@ -35,6 +36,10 @@ function handleSiteRoute(context, req, res, url) {
 
   if (url.pathname === '/api/state') {
     sendJson(res, 200, stateForUser(req));
+    return true;
+  }
+  if (url.pathname === '/api/user-state') {
+    sendJson(res, 200, userStateForRequest(req));
     return true;
   }
   if (url.pathname === '/api/gallery') {

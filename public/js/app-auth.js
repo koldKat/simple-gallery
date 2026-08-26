@@ -11,6 +11,7 @@ export function createAuthController(options) {
     loadState,
     saveUserSettings,
     saveAnonymousPreloadSettings,
+    clearUserLibraryState,
     showNotice,
     documentObject = document,
   } = options;
@@ -34,7 +35,9 @@ export function createAuthController(options) {
       logout.addEventListener('click', async () => {
         await fetchJson('/api/auth/logout', { method: 'POST' });
         state.user = null;
+        state.userStats = null;
         state.favorites = null;
+        clearUserLibraryState();
         syncUserOnlyUi();
         renderHeaderStats();
         if (state.mode === 'favorites') state.mode = 'home';
@@ -69,8 +72,10 @@ export function createAuthController(options) {
         });
         state.user = payload.user;
         state.userStats = null;
+        clearUserLibraryState();
         renderAuth();
         syncUserOnlyUi();
+        renderHeaderStats();
         renderFavoritesButton();
         await loadCurrentUserStats();
         await loadState();

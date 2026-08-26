@@ -58,6 +58,7 @@ function fixture() {
     seenImagesForGallery: () => new Set(['two.jpg']),
     publicUser: value => value ? { id: value.id, username: value.username } : null,
     seenDataForUser: () => ({ images: new Set(['3\ntwo.jpg']), galleryCounts: new Map([[3, 1]]) }),
+    unseenStatsForUser: () => ({ models: 1, galleries: 1, images: 1 }),
     gallerySeenSummary: (item, seenData) => {
       const seenCount = Number(seenData.galleryCounts.get(item.dbId) || 0);
       return { seenCount, seen: Number(item.count || 0) > 0 && seenCount >= Number(item.count || 0) };
@@ -98,16 +99,25 @@ test('gallery image responses use generated thumbs and source fallback', () => {
   context.close();
 });
 
-test('public state projects favorites and seen counts without mutating cached state', () => {
+test('public state returns base library state without mutating cached models', () => {
   const context = fixture();
   const response = context.service.stateForUser({});
-  assert.equal(response.models[0].favorite, true);
-  assert.equal(response.models[0].seenCount, 1);
-  assert.equal(response.models[0].galleries[0].favorite, true);
-  assert.equal(response.latest[0].seenCount, 1);
+  assert.equal(response.models[0], context.state.models[0]);
+  assert.equal(response.latest[0], context.state.latest[0]);
   assert.deepEqual(response.runtime, { rssBytes: 10 });
   assert.deepEqual(response.app, { name: 'Test Gallery' });
   assert.equal(context.state.models[0].favorite, undefined);
+  context.close();
+});
+
+test('user overlay state returns compact favorite and seen metadata', () => {
+  const context = fixture();
+  const response = context.service.userStateForRequest({});
+  assert.deepEqual(response.user, { id: 1, username: 'alex' });
+  assert.deepEqual(response.favoriteModelIds, ['alpha']);
+  assert.deepEqual(response.favoriteGalleryIds, [3]);
+  assert.deepEqual(response.gallerySeenCounts, [[3, 1]]);
+  assert.deepEqual(response.unseenStats, { models: 1, galleries: 1, images: 1 });
   context.close();
 });
 
