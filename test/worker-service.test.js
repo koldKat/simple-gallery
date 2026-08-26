@@ -63,6 +63,46 @@ test('worker exits and failed responses reject pending requests', async () => {
   await assert.rejects(exited, /Worker exited/);
 });
 
+test('worker process errors reject requests without becoming unhandled events', async () => {
+  const child = new EventEmitter();
+  child.connected = true;
+  child.send = () => {};
+  child.kill = () => {};
+  const errors = [];
+  const service = createWorkerService({
+    isWorker: false,
+    scriptPath: '/app/server.js',
+    onEvent: () => {},
+    processRef: { env: {} },
+    forkProcess: () => child,
+    logger: { error: message => errors.push(message) },
+  });
+
+  const request = service.request('load-missing-models');
+  child.emit('error', Object.assign(new Error('too many open files'), { code: 'EMFILE' }));
+
+  await assert.rejects(request, /Worker failed: too many open files/);
+  assert.deepEqual(errors, ['[worker] Worker process error: too many open files']);
+});
+
+test('worker IPC callback errors reject only the affected request', async () => {
+  const child = new EventEmitter();
+  child.connected = true;
+  child.send = (message, callback) => {
+    queueMicrotask(() => callback(Object.assign(new Error('channel closed'), { code: 'EPIPE' })));
+  };
+  child.kill = () => {};
+  const service = createWorkerService({
+    isWorker: false,
+    scriptPath: '/app/server.js',
+    onEvent: () => {},
+    processRef: { env: {} },
+    forkProcess: () => child,
+  });
+
+  await assert.rejects(service.request('load-missing-models'), /Worker IPC failed: channel closed/);
+});
+
 test('worker process dispatches commands and returns structured responses', async () => {
   const processRef = new EventEmitter();
   processRef.connected = true;

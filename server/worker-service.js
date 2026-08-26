@@ -55,29 +55,58 @@ function createWorkerService({
     if (message.type === 'event') onEvent(message);
   }
 
+  function rejectPendingFor(failedChild, message) {
+    if (child !== failedChild) return;
+    child = null;
+    for (const request of pending.values()) request.reject(new Error(message));
+    pending.clear();
+  }
+
   function ensureChild() {
     if (isWorker) return null;
     if (child && child.connected) return child;
-    child = forkProcess(scriptPath, [], {
+    const nextChild = forkProcess(scriptPath, [], {
       env: { ...processRef.env, SIMPLE_GALLERY_ROLE: 'worker' },
       stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
     });
-    child.on('message', handleParentMessage);
-    child.on('exit', () => {
-      child = null;
-      for (const request of pending.values()) request.reject(new Error('Worker exited.'));
-      pending.clear();
+    child = nextChild;
+    nextChild.on('message', handleParentMessage);
+    nextChild.on('error', error => {
+      const message = error?.message || 'Worker process failed.';
+      logger.error(`[worker] Worker process error: ${message}`);
+      rejectPendingFor(nextChild, `Worker failed: ${message}`);
     });
-    return child;
+    nextChild.on('exit', () => {
+      rejectPendingFor(nextChild, 'Worker exited.');
+    });
+    return nextChild;
   }
 
   function request(command, payload = {}) {
-    const activeChild = ensureChild();
+    let activeChild;
+    try {
+      activeChild = ensureChild();
+    } catch (error) {
+      return Promise.reject(new Error(`Worker failed to start: ${error?.message || error}`));
+    }
     if (!activeChild) return Promise.reject(new Error('Worker unavailable.'));
     const id = ++requestId;
     return new Promise((resolve, reject) => {
       pending.set(id, { resolve, reject });
-      activeChild.send({ type: 'command', id, command, payload });
+      try {
+        activeChild.send({ type: 'command', id, command, payload }, error => {
+          if (!error) return;
+          const request = pending.get(id);
+          if (!request) return;
+          pending.delete(id);
+          request.reject(new Error(`Worker IPC failed: ${error.message || error}`));
+          if (!activeChild.connected && child === activeChild) child = null;
+        });
+      } catch (error) {
+        pending.delete(id);
+        reject(new Error(`Worker IPC failed: ${error?.message || error}`));
+        if (!activeChild.connected && child === activeChild) child = null;
+      }
     });
   }
 

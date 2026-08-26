@@ -49,7 +49,9 @@ Install dependencies with `npm install`, then start the application with:
 node server.js
 ```
 
-The default address is `http://localhost:3020/`. Set `PORT`, `DB_PATH`, `DB_BACKUP_DIR`, or `MEDIA_ROOT` to override the corresponding neutral defaults.
+The default address is `http://localhost:3020/`. Set `PORT`, `DB_PATH`, `DB_BACKUP_DIR`, or `MEDIA_ROOT` to override the corresponding neutral defaults. The web process defaults to at most 128 concurrent static-file reads and 1,024 queued static reads; override these safeguards with `STATIC_READ_CONCURRENCY` and `STATIC_READ_QUEUE_LIMIT` when the host's file-descriptor budget requires different limits.
+
+Rescan All and other imports run in a child worker process so their network and image-processing descriptors are isolated from the web process. Worker spawn, exit, and IPC failures are returned to the requesting Admin action without terminating the web process. If web traffic reaches the configured static-read capacity, excess requests receive a retryable `503` response instead of exhausting file descriptors and terminating the server.
 
 ## Installable App
 

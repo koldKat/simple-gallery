@@ -104,6 +104,8 @@ const {
   THUMB_CONCURRENCY,
   IMPORT_CONCURRENCY,
   MODEL_LIST_DISCOVERY_CONCURRENCY,
+  STATIC_READ_CONCURRENCY,
+  STATIC_READ_QUEUE_LIMIT,
   IMPORT_FETCH_RETRIES,
   IMPORT_FETCH_TIMEOUT_MS,
   IMPORT_LOG_LIMIT,
@@ -952,6 +954,8 @@ const serveStatic = createStaticHandler({
   thumbDirectory: THUMB_DIR,
   mimeTypes: MIME,
   markForegroundActivity,
+  maxConcurrentReads: STATIC_READ_CONCURRENCY,
+  maxQueuedReads: STATIC_READ_QUEUE_LIMIT,
 });
 
 const adminRouteContext = {
