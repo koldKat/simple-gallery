@@ -28,7 +28,7 @@ Node.js and SQLite gallery application served by `server.js`.
 - `server/rescan-checkpoints.js` owns Rescan All duration metadata and resumable checkpoint recovery.
 - `server/import-errors.js` persists and broadcasts importer failures.
 - `server/admin-reporting.js` builds view/user reports, protected-account checks, and Admin model choices from live database and traffic state.
-- `server/db/`, `server/database-runtime.js`, `server/db-housekeeping.js`, and `server/backup.js` own the database connection, schema initialization, busy retries, runtime metrics, maintenance operations, periodic cleanup lifecycle, and backup retention.
+- `server/db/`, `server/database-runtime.js`, `server/uptime-tracker.js`, `server/db-housekeeping.js`, and `server/backup.js` own the database connection, schema initialization, busy retries, runtime metrics, persisted uptime accounting, maintenance operations, periodic cleanup lifecycle, and backup retention.
 - `server/event-bus.js`, `server/traffic.js`, `server/page-renderer.js`, `server/web-app-manifest.js`, `server/sitemap.js`, `server/routes/site.js`, and `server/static-handler.js` own server-sent events, request accounting, public HTML/SEO, installable-app metadata, sitemap and public route dispatch, and static-file policy.
 - `server/auto-rescan-service.js` owns the scheduled Rescan All timer, retry lifecycle, and worker dispatch.
 - `server/worker-service.js` owns worker process creation, IPC request correlation, event transport, and shutdown; `server/worker-coordinator.js` owns import command dispatch and worker-state reconciliation.
@@ -124,9 +124,11 @@ Admin HTML, APIs, scans, imports, and database maintenance are restricted to loc
 
 Auto Rescan All can be enabled for a selected 24-hour time and one or more weekdays. Installations without a saved weekday selection run every day, preserving the original schedule behavior.
 
+The Admin dashboard separates database totals from process health. Library, account, storage, import-error, and view totals refresh every 60 seconds. Traffic, application age, uptime percentage, and session uptime refresh every second. Application age begins at the earliest timestamp-bearing record in the database. Uptime persists across restarts: a restart gap of up to 15 seconds is treated as continuous uptime; only the excess is recorded as downtime.
+
 ### User Management
 
-Newly registered users are signed in immediately, and their registration time is recorded as their first login. **Admin > Users** lists account activity and can permanently delete an account. Deletion also removes that user's sessions, favorites, seen state, and other user-owned records through database foreign-key cascades. The `koldKat` account is protected in both the Admin UI and API and cannot be deleted.
+Registration requires a case-insensitively unique username, password confirmation, and optionally an email address. Newly registered users are signed in immediately, and their registration time is recorded as their first login. Logged-in users can open **Profile** to change their display name or email, change their password after current-password verification, and add or remove an avatar. Avatar source files are limited to 20 MB; the server center-crops each valid image to a 512px square JPEG, and the stored file is capped at 256 KiB under `public/uploads/avatars/`. Five consecutive failed password attempts temporarily lock an account for 15 minutes. Authentication also limits an IP address to eight failed registration or login attempts per 15 minutes. This bounded, in-memory IP limit resets when the server restarts. Startup refuses the username-protection migration if existing usernames differ only by case; rename one of the conflicting accounts and retry. **Admin > Users** lists email, account status, total favorites, sessions, and activity; it can revoke sessions, manually lock or unlock accounts, and permanently delete an account. Locking revokes that user's sessions. Deletion also removes that user's sessions, favorites, seen state, and other user-owned records through database foreign-key cascades. The `koldKat` account is protected in both the Admin UI and API and cannot be locked or deleted.
 
 ### Application Version
 

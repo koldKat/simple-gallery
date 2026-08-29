@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "better-sqlite3": "^9.6.0",
-    "geoip-lite": "^2.0.2"
+    "geoip-lite": "^2.0.2",
+    "sharp": "^0.35.3"
   }
 }

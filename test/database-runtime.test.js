@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createDatabaseRuntime, withBusyRetry } = require('../server/database-runtime');
 
-test('busy retry repeats only SQLITE_BUSY failures', () => {
+test('busy retry repeats SQLITE_BUSY and SQLITE_LOCKED failures', () => {
   let attempts = 0;
   const result = withBusyRetry(() => {
     attempts += 1;
@@ -18,6 +18,16 @@ test('busy retry repeats only SQLITE_BUSY failures', () => {
 
   assert.equal(result, 'ok');
   assert.equal(attempts, 3);
+  attempts = 0;
+  assert.equal(withBusyRetry(() => {
+    attempts += 1;
+    if (attempts < 2) {
+      const error = new Error('locked');
+      error.code = 'SQLITE_LOCKED';
+      throw error;
+    }
+    return 'unlocked';
+  }, 2, 1), 'unlocked');
   assert.throws(() => withBusyRetry(() => { throw new Error('broken'); }, 3, 1), /broken/);
 });
 
@@ -52,4 +62,32 @@ test('vacuum reports size changes and checkpoints the WAL', () => {
   assert.match(logs[2], /checkpointed=2/);
   assert.equal(runtime.runtimeStats().dbBytes, 80);
   assert.equal(runtime.runtimeStats().trafficInBytes, 4);
+});
+
+test('live runtime CPU sampling is independent from general runtime calls', () => {
+  let wallNs = 0n;
+  let cpuUsage = { user: 0, system: 0 };
+  const processRef = {
+    memoryUsage: () => ({ rss: 100, heapUsed: 20, heapTotal: 40 }),
+    hrtime: { bigint: () => wallNs },
+    cpuUsage: () => ({ ...cpuUsage }),
+  };
+  const runtime = createDatabaseRuntime({
+    db: { pragma() { return []; } },
+    dbPath: '/data/gallery.db',
+    fileSize: () => 10,
+    trafficSnapshot: () => ({}),
+    processRef,
+    osModule: { cpus: () => [{}, {}, {}, {}] },
+  });
+
+  wallNs = 1_000_000_000n;
+  cpuUsage = { user: 1_000_000, system: 0 };
+  runtime.runtimeStats();
+  wallNs = 2_000_000_000n;
+  cpuUsage = { user: 1_500_000, system: 0 };
+  const live = runtime.liveRuntimeStats();
+
+  assert.equal(live.cpuCores, 0.75);
+  assert.equal(live.cpuTotalCores, 4);
 });

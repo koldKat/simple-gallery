@@ -13,25 +13,43 @@ function withBusyRetry(work, attempts = 12, delayMs = 150) {
       return work();
     } catch (error) {
       lastError = error;
-      if (error?.code !== 'SQLITE_BUSY' || attempt === attempts - 1) throw error;
+      if (!['SQLITE_BUSY', 'SQLITE_LOCKED'].includes(error?.code) || attempt === attempts - 1) throw error;
       sleepSync(delayMs);
     }
   }
   throw lastError;
 }
 
-function createDatabaseRuntime({ db, dbPath, fileSize, trafficSnapshot, log = console.log }) {
-  let lastCpuUsage = process.cpuUsage();
-  let lastCpuWallNs = process.hrtime.bigint();
+function createDatabaseRuntime({
+  db,
+  dbPath,
+  fileSize,
+  trafficSnapshot,
+  uptimeStats = () => ({}),
+  log = console.log,
+  processRef = process,
+  osModule = os,
+}) {
+  let lastCpuUsage = processRef.cpuUsage();
+  let lastCpuWallNs = processRef.hrtime.bigint();
+  let lastLiveCpuUsage = processRef.cpuUsage();
+  let lastLiveCpuWallNs = processRef.hrtime.bigint();
 
-  function runtimeStats() {
-    const usage = process.memoryUsage();
-    const nowNs = process.hrtime.bigint();
-    const cpuNow = process.cpuUsage();
-    const elapsedMicros = Number(nowNs - lastCpuWallNs) / 1000;
-    const cpuMicros = Number(cpuNow.user - lastCpuUsage.user) + Number(cpuNow.system - lastCpuUsage.system);
-    lastCpuWallNs = nowNs;
-    lastCpuUsage = cpuNow;
+  function processStats(live = false) {
+    const usage = processRef.memoryUsage();
+    const nowNs = processRef.hrtime.bigint();
+    const cpuNow = processRef.cpuUsage();
+    const previousUsage = live ? lastLiveCpuUsage : lastCpuUsage;
+    const previousWallNs = live ? lastLiveCpuWallNs : lastCpuWallNs;
+    const elapsedMicros = Number(nowNs - previousWallNs) / 1000;
+    const cpuMicros = Number(cpuNow.user - previousUsage.user) + Number(cpuNow.system - previousUsage.system);
+    if (live) {
+      lastLiveCpuWallNs = nowNs;
+      lastLiveCpuUsage = cpuNow;
+    } else {
+      lastCpuWallNs = nowNs;
+      lastCpuUsage = cpuNow;
+    }
     const cpuPercent = elapsedMicros > 0 ? (cpuMicros / elapsedMicros) * 100 : 0;
     const cpuCores = cpuPercent / 100;
     return {
@@ -40,9 +58,25 @@ function createDatabaseRuntime({ db, dbPath, fileSize, trafficSnapshot, log = co
       heapTotalBytes: Number(usage.heapTotal || 0),
       cpuPercent: Number.isFinite(cpuPercent) ? Math.max(0, cpuPercent) : 0,
       cpuCores: Number.isFinite(cpuCores) ? Math.max(0, cpuCores) : 0,
-      cpuTotalCores: os.cpus().length,
+      cpuTotalCores: osModule.cpus().length,
+    };
+  }
+
+  function runtimeStats() {
+    return {
+      ...processStats(),
       dbBytes: fileSize(dbPath),
       ...trafficSnapshot(),
+      ...uptimeStats(),
+    };
+  }
+
+  function liveRuntimeStats() {
+    return {
+      ...processStats(true),
+      dbBytes: fileSize(dbPath),
+      ...trafficSnapshot(),
+      ...uptimeStats(),
     };
   }
 
@@ -68,7 +102,7 @@ function createDatabaseRuntime({ db, dbPath, fileSize, trafficSnapshot, log = co
     checkpointWal(reason);
   }
 
-  return { checkpointWal, runtimeStats, vacuumDatabase };
+  return { checkpointWal, runtimeStats, liveRuntimeStats, vacuumDatabase };
 }
 
 module.exports = { createDatabaseRuntime, withBusyRetry };

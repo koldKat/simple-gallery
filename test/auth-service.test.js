@@ -8,16 +8,18 @@ const { createAuthService } = require('../server/auth-service');
 const NOW = Date.parse('2026-08-16T12:00:00.000Z');
 const TWO_WEEKS = 14 * 24 * 60 * 60 * 1000;
 
-function fixture() {
+function fixture(options = {}) {
   const db = new Database(':memory:');
   db.exec(`
     CREATE TABLE users (
       id INTEGER PRIMARY KEY,
       username TEXT,
+      avatar_path TEXT,
       display_name TEXT,
       preload_model INTEGER DEFAULT 0,
       preload_gallery INTEGER DEFAULT 0,
-      disabled_at TEXT
+      disabled_at TEXT,
+      admin_locked INTEGER NOT NULL DEFAULT 0
     );
     CREATE TABLE sessions (
       user_id INTEGER,
@@ -38,6 +40,7 @@ function fixture() {
     sendJson(_res, status, payload) {
       responses.push({ status, payload });
     },
+    ...options,
   });
   return { db, service, responses };
 }
@@ -115,6 +118,27 @@ test('authorization and visitor cookies preserve request behavior', () => {
     actorKey: 'visitor:abcdefghijklmnop',
     setCookie: null,
   });
+  db.close();
+});
+
+test('authentication failures are rate limited per client address', () => {
+  const { service, db } = fixture();
+  for (let attempt = 0; attempt < 8; attempt += 1) service.recordAuthFailure('203.0.113.10');
+  assert.equal(service.isAuthRateLimited('203.0.113.10'), true);
+  assert.equal(service.isAuthRateLimited('203.0.113.11'), false);
+  service.clearAuthFailures('203.0.113.10');
+  assert.equal(service.isAuthRateLimited('203.0.113.10'), false);
+  db.close();
+});
+
+test('authentication failure tracking has a bounded number of client entries', () => {
+  const { service, db } = fixture({ authFailureMaxTrackedIps: 2 });
+  for (let attempt = 0; attempt < 8; attempt += 1) service.recordAuthFailure('203.0.113.1');
+  service.recordAuthFailure('203.0.113.2');
+  service.recordAuthFailure('203.0.113.3');
+  assert.equal(service.isAuthRateLimited('203.0.113.1'), false);
+  for (let attempt = 0; attempt < 7; attempt += 1) service.recordAuthFailure('203.0.113.3');
+  assert.equal(service.isAuthRateLimited('203.0.113.3'), true);
   db.close();
 });
 

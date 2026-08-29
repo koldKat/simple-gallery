@@ -8,7 +8,7 @@ function handleAdminRoute(ctx, req, res, url) {
     normalizeAutoRescanTime, normalizedJsonSetting, scheduleAutoRescan, broadcast, stateNotice,
     getImportJob, requestWorker, scanLibrary, getScannedUrlPayload, auditSavedModelUrls,
     ignoredModelUrlsResponse, ignoreModelUrl, unignoreModelUrl, syncScannedUrlsFile,
-    viewStatsResponse, adminUsersResponse, deleteAdminUser, adminModelOptionsResponse, loadImportErrors, dismissImportError,
+    viewStatsResponse, adminUsersResponse, deleteAdminUser, revokeAdminUserSessions, setAdminUserLocked, adminSummaryStats, liveRuntimeStats, adminModelOptionsResponse, loadImportErrors, dismissImportError,
     clearImportErrors, vacuumDatabase, runtimeStats, getLoadedModelList,
   } = ctx;
 
@@ -152,6 +152,14 @@ function handleAdminRoute(ctx, req, res, url) {
     sendJson(res, 200, viewStatsResponse());
     return true;
   }
+  if (url.pathname === '/api/admin/stats') {
+    sendJson(res, 200, adminSummaryStats());
+    return true;
+  }
+  if (url.pathname === '/api/admin/live') {
+    sendJson(res, 200, liveRuntimeStats());
+    return true;
+  }
   if (url.pathname === '/api/admin/users') {
     sendJson(res, 200, adminUsersResponse());
     return true;
@@ -163,6 +171,21 @@ function handleAdminRoute(ctx, req, res, url) {
         sendJson(res, 200, deleteAdminUser(payload.id));
       })
       .catch(error => sendJson(res, 400, { error: error.message || 'User deletion failed.' }));
+    return true;
+  }
+  if (url.pathname === '/api/admin/users/revoke-sessions' && req.method === 'POST') {
+    readRequestBody(req)
+      .then(body => sendJson(res, 200, revokeAdminUserSessions(JSON.parse(body || '{}').id)))
+      .catch(error => sendJson(res, 400, { error: error.message || 'Session revoke failed.' }));
+    return true;
+  }
+  if (url.pathname === '/api/admin/users/lock' && req.method === 'POST') {
+    readRequestBody(req)
+      .then(body => {
+        const payload = JSON.parse(body || '{}');
+        sendJson(res, 200, setAdminUserLocked(payload.id, payload.locked === true));
+      })
+      .catch(error => sendJson(res, 400, { error: error.message || 'Account lock update failed.' }));
     return true;
   }
   if (url.pathname === '/api/admin/model-options') {

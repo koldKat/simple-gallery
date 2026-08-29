@@ -24,24 +24,6 @@
         <h1 id="admin-title">Gallery Admin</h1>
       </div>
       <div class="topbar-actions admin-topbar-actions">
-        <div class="admin-runtime-stats">
-          <article>
-            <span>Heap Used / Avail</span>
-            <strong id="heap-size-stat">&mdash;</strong>
-          </article>
-          <article>
-            <span>RSS / CPU Avg</span>
-            <strong id="rss-size-stat">&mdash;</strong>
-          </article>
-          <article>
-            <span>Remote In / Local In</span>
-            <strong id="traffic-in-stat">&mdash;</strong>
-          </article>
-          <article>
-            <span>Remote Out / Local Out</span>
-            <strong id="traffic-out-stat">&mdash;</strong>
-          </article>
-        </div>
         <div class="admin-tabs">
           <button id="admin-tab-main" type="button" class="is-active">Main</button>
           <button id="admin-tab-profile" type="button">Profile</button>
@@ -54,6 +36,54 @@
 
     <main class="admin-layout">
       <div id="admin-main-panel-group" class="admin-panel-group">
+      <section class="admin-panel admin-dashboard-panel">
+        <div class="content-head">
+          <div>
+            <p class="eyebrow">Dashboard</p>
+            <h2>Library and Runtime Overview</h2>
+          </div>
+          <div class="view-actions">
+            <button id="refresh-dashboard-btn" type="button">Refresh</button>
+          </div>
+        </div>
+        <div class="admin-dashboard-grid">
+          <section class="admin-metric-stack">
+            <h3>Library <small>60s</small></h3>
+            <article><span>Models</span><strong id="dashboard-models-stat">&mdash;</strong></article>
+            <article><span>Galleries</span><strong id="dashboard-galleries-stat">&mdash;</strong></article>
+            <article><span>Images</span><strong id="dashboard-images-stat">&mdash;</strong></article>
+            <article><span>Saved URLs</span><strong id="dashboard-urls-stat">&mdash;</strong></article>
+          </section>
+          <section class="admin-metric-stack">
+            <h3>Accounts <small>60s</small></h3>
+            <article><span>Users</span><strong id="dashboard-users-stat">&mdash;</strong></article>
+            <article><span>Active Sessions</span><strong id="dashboard-sessions-stat">&mdash;</strong></article>
+            <article><span>Favorites</span><strong id="dashboard-favorites-stat">&mdash;</strong></article>
+            <article><span>Seen Images</span><strong id="dashboard-seen-stat">&mdash;</strong></article>
+          </section>
+          <section class="admin-metric-stack">
+            <h3>Storage <small>60s</small></h3>
+            <article><span>Database</span><strong id="dashboard-db-stat">&mdash;</strong></article>
+            <article><span>Images</span><strong id="dashboard-image-size-stat">&mdash;</strong></article>
+            <article><span>Thumbs</span><strong id="dashboard-thumb-size-stat">&mdash;</strong></article>
+            <article><span>Import Errors</span><strong id="dashboard-errors-stat">&mdash;</strong></article>
+          </section>
+          <section class="admin-metric-stack">
+            <h3>Views <small>60s</small></h3>
+            <article><span>Models</span><strong id="dashboard-model-views-stat">&mdash;</strong></article>
+            <article><span>Galleries</span><strong id="dashboard-gallery-views-stat">&mdash;</strong></article>
+            <article><span>Images</span><strong id="dashboard-image-views-stat">&mdash;</strong></article>
+          </section>
+          <section class="admin-metric-stack">
+            <h3>Runtime <small>1s</small></h3>
+            <article><span>Uptime</span><strong id="dashboard-uptime-stat">&mdash;</strong><small id="dashboard-uptime-sub"></small></article>
+            <article><span>App Age</span><strong id="dashboard-age-stat">&mdash;</strong></article>
+            <article><span>Session Uptime</span><strong id="dashboard-session-uptime-stat">&mdash;</strong></article>
+            <article><span>Traffic In / Traffic Out</span><strong id="dashboard-traffic-stat">&mdash;</strong></article>
+          </section>
+        </div>
+      </section>
+
       <section class="admin-panel">
         <div class="content-head">
           <div>
@@ -168,21 +198,6 @@
             <span>Skipped</span>
             <strong id="skipped-stat">&mdash;</strong>
           </article>
-          <article>
-            <span>Database Size</span>
-            <strong id="db-size-stat">&mdash;</strong>
-          </article>
-          <article>
-            <span>Actual Size</span>
-            <strong id="actual-size-stat">&mdash;</strong>
-          </article>
-          <article>
-            <span>Thumb Size</span>
-            <strong id="thumb-size-stat">&mdash;</strong>
-          </article>
-        </div>
-        <div class="admin-stats-actions">
-          <button id="vacuum-db-btn" type="button" class="admin-stat-btn">Vacuum Database</button>
         </div>
         <div class="log-list" id="log-list"></div>
       </section>
@@ -266,7 +281,14 @@
               <button id="refresh-users-btn" type="button">Refresh</button>
             </div>
           </div>
-          <div class="admin-users-list" id="admin-users-list"></div>
+          <div class="admin-users-table-shell">
+            <table class="admin-users-table">
+              <thead>
+                <tr><th>User</th><th>Email</th><th>Access</th><th>Favorites</th><th>Sessions</th><th>Created</th><th>Last Login</th><th>Actions</th></tr>
+              </thead>
+              <tbody id="admin-users-list"></tbody>
+            </table>
+          </div>
         </section>
       </div>
 

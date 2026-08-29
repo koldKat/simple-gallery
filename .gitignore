@@ -11,6 +11,8 @@ gallery.sync-conflict-*.db*
 # Generated backups and downloaded media
 db-backups/
 public/media/
+public/uploads/avatars/*
+!public/uploads/avatars/.gitkeep
 
 # Local configuration and logs
 .env

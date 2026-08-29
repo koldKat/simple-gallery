@@ -59,14 +59,27 @@ const els = {
   known: document.querySelector('#known-stat'),
   images: document.querySelector('#images-stat'),
   skipped: document.querySelector('#skipped-stat'),
-  dbSize: document.querySelector('#db-size-stat'),
-  vacuumDb: document.querySelector('#vacuum-db-btn'),
-  actualSize: document.querySelector('#actual-size-stat'),
-  thumbSize: document.querySelector('#thumb-size-stat'),
-  heapSize: document.querySelector('#heap-size-stat'),
-  rssSize: document.querySelector('#rss-size-stat'),
-  trafficIn: document.querySelector('#traffic-in-stat'),
-  trafficOut: document.querySelector('#traffic-out-stat'),
+  refreshDashboard: document.querySelector('#refresh-dashboard-btn'),
+  dashboardModels: document.querySelector('#dashboard-models-stat'),
+  dashboardGalleries: document.querySelector('#dashboard-galleries-stat'),
+  dashboardImages: document.querySelector('#dashboard-images-stat'),
+  dashboardUrls: document.querySelector('#dashboard-urls-stat'),
+  dashboardUsers: document.querySelector('#dashboard-users-stat'),
+  dashboardSessions: document.querySelector('#dashboard-sessions-stat'),
+  dashboardFavorites: document.querySelector('#dashboard-favorites-stat'),
+  dashboardSeen: document.querySelector('#dashboard-seen-stat'),
+  dashboardDb: document.querySelector('#dashboard-db-stat'),
+  dashboardImageSize: document.querySelector('#dashboard-image-size-stat'),
+  dashboardThumbSize: document.querySelector('#dashboard-thumb-size-stat'),
+  dashboardErrors: document.querySelector('#dashboard-errors-stat'),
+  dashboardModelViews: document.querySelector('#dashboard-model-views-stat'),
+  dashboardGalleryViews: document.querySelector('#dashboard-gallery-views-stat'),
+  dashboardImageViews: document.querySelector('#dashboard-image-views-stat'),
+  dashboardUptime: document.querySelector('#dashboard-uptime-stat'),
+  dashboardUptimeSub: document.querySelector('#dashboard-uptime-sub'),
+  dashboardAge: document.querySelector('#dashboard-age-stat'),
+  dashboardSessionUptime: document.querySelector('#dashboard-session-uptime-stat'),
+  dashboardTraffic: document.querySelector('#dashboard-traffic-stat'),
   importErrors: document.querySelector('#import-errors'),
   clearErrors: document.querySelector('#clear-errors-btn'),
   logs: document.querySelector('#log-list'),
@@ -100,6 +113,8 @@ let viewStatsResyncScheduled = false;
 let viewStatsResizeObserver = null;
 let viewStatsRefreshInFlight = false;
 let runtimeRefreshInFlight = false;
+let dashboardRefreshInFlight = false;
+let liveRefreshInFlight = false;
 let adminLibraryRoot = '';
 let directGalleryModelOptions = [];
 let directGalleryModelOptionIndex = -1;
@@ -146,10 +161,6 @@ function formatTrafficSize(bytes) {
   return `${size.toFixed(decimals)} ${units[unit]}`;
 }
 
-function renderTrafficSplit(remoteBytes, localBytes) {
-  return `${formatTrafficSize(remoteBytes)} / ${formatTrafficSize(localBytes)}`;
-}
-
 const countryNameFormatter = typeof Intl !== 'undefined' && typeof Intl.DisplayNames === 'function'
   ? new Intl.DisplayNames(['en'], { type: 'region' })
   : null;
@@ -175,37 +186,50 @@ function countryFlagMarkup(countryCode) {
   return `<img class="country-flag" src="https://flagcdn.com/24x18/${lower}.png" srcset="https://flagcdn.com/48x36/${lower}.png 2x" width="24" height="18" alt="${escapeHtml(code)} flag" loading="lazy" decoding="async">`;
 }
 
-function renderCountryTraffic(rows) {
-  const countries = Array.isArray(rows) ? rows : [];
-  if (!lastViewStatsPayload) {
-    refreshViewStats().catch(() => {});
-    return;
-  }
-  renderViewStats({
-    ...lastViewStatsPayload,
-    countries,
-  }, { count: Math.max(1, lastViewStatsRankingCount || Math.min(countries.length || 1, 10)) });
+function renderRuntimeStats(runtime = {}) {
+  if (!Object.keys(runtime).length) return;
+  lastRuntime = runtime;
+}
+
+function renderLiveDashboard(runtime = {}) {
+  if (!Object.keys(runtime).length) return;
+  const seconds = value => formatDuration(Number(value || 0) * 1000);
+  els.dashboardUptime.textContent = `${Number(runtime.uptimePercent || 100).toFixed(2)}%`;
+  els.dashboardUptimeSub.textContent = Number(runtime.downtimeSeconds || 0)
+    ? `${seconds(runtime.downtimeSeconds)} downtime`
+    : 'no recorded downtime';
+  els.dashboardAge.textContent = seconds(runtime.appAgeSeconds);
+  els.dashboardSessionUptime.textContent = seconds(runtime.sessionUptimeSeconds);
+  els.dashboardTraffic.textContent = `${formatTrafficSize(runtime.trafficInBytes)} / ${formatTrafficSize(runtime.trafficOutBytes)}`;
 }
 
 function renderLibraryTotals(libraryState) {
-  const totals = libraryState?.totals || {};
   const runtime = libraryState?.runtime || lastRuntime || {};
-  if (libraryState?.runtime && Object.keys(libraryState.runtime).length) {
-    lastRuntime = libraryState.runtime;
-  }
-  els.actualSize.textContent = formatSize(totals.imageBytes);
-  els.thumbSize.textContent = formatSize(totals.thumbBytes);
-  els.dbSize.textContent = formatSize(runtime.dbBytes);
-  const heapUsed = Number(runtime.heapUsedBytes || 0);
-  const heapTotal = Number(runtime.heapTotalBytes || 0);
-  const heapAvailable = Math.max(0, heapTotal - heapUsed);
-  els.heapSize.textContent = `${formatSize(heapUsed)} / ${formatSize(heapAvailable)}`;
-  const cpuCores = Number(runtime.cpuCores || 0);
-  const cpuTotalCores = Math.max(1, Number(runtime.cpuTotalCores || 1));
-  els.rssSize.textContent = `${formatSize(runtime.rssBytes)} / ${((cpuCores / cpuTotalCores) * 100).toFixed(1)}%`;
-  els.trafficIn.textContent = renderTrafficSplit(runtime.trafficRemoteInBytes, runtime.trafficLocalInBytes);
-  els.trafficOut.textContent = renderTrafficSplit(runtime.trafficRemoteOutBytes, runtime.trafficLocalOutBytes);
-  renderCountryTraffic(runtime.remoteCountryTraffic);
+  renderRuntimeStats(runtime);
+  renderLiveDashboard(runtime);
+}
+
+function renderDashboardStats(payload = {}) {
+  const library = payload.library || {};
+  const accounts = payload.accounts || {};
+  const storage = payload.storage || {};
+  const views = payload.views || {};
+  const count = value => Number(value || 0).toLocaleString();
+  els.dashboardModels.textContent = count(library.models);
+  els.dashboardGalleries.textContent = count(library.galleries);
+  els.dashboardImages.textContent = count(library.images);
+  els.dashboardUrls.textContent = count(library.sourceUrls);
+  els.dashboardUsers.textContent = count(accounts.users);
+  els.dashboardSessions.textContent = count(accounts.activeSessions);
+  els.dashboardFavorites.textContent = count(accounts.favorites);
+  els.dashboardSeen.textContent = count(accounts.seenImages);
+  els.dashboardDb.textContent = formatSize(storage.databaseBytes);
+  els.dashboardImageSize.textContent = formatSize(storage.imageBytes);
+  els.dashboardThumbSize.textContent = formatSize(storage.thumbBytes);
+  els.dashboardErrors.textContent = count(storage.importErrors);
+  els.dashboardModelViews.textContent = count(views.models);
+  els.dashboardGalleryViews.textContent = count(views.galleries);
+  els.dashboardImageViews.textContent = count(views.images);
 }
 
 function renderAppSettings(libraryState) {
@@ -429,6 +453,33 @@ async function refreshLibraryTotals() {
   }
 }
 
+async function refreshDashboardStats() {
+  if (dashboardRefreshInFlight) return;
+  dashboardRefreshInFlight = true;
+  try {
+    const response = await fetch('/api/admin/stats', { cache: 'no-store' });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'Dashboard refresh failed.');
+    renderDashboardStats(payload);
+  } finally {
+    dashboardRefreshInFlight = false;
+  }
+}
+
+async function refreshLiveStats() {
+  if (liveRefreshInFlight) return;
+  liveRefreshInFlight = true;
+  try {
+    const response = await fetch('/api/admin/live', { cache: 'no-store' });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'Live stats refresh failed.');
+    renderRuntimeStats(payload);
+    renderLiveDashboard(payload);
+  } finally {
+    liveRefreshInFlight = false;
+  }
+}
+
 function setImportControlsDisabled(disabled) {
   if (disabled) closeDirectGalleryModelOptions();
   els.button.disabled = disabled;
@@ -447,7 +498,6 @@ function setImportControlsDisabled(disabled) {
   els.directGalleryModel.disabled = disabled;
   els.directGalleryUrl.disabled = disabled;
   els.directGalleryButton.disabled = disabled;
-  els.vacuumDb.disabled = disabled;
 }
 
 function beginActiveRun() {
@@ -732,20 +782,25 @@ function renderViewStats(payload, options = {}) {
 
 function renderUsers(payload) {
   const users = payload?.users || [];
-  els.usersList.innerHTML = users.length ? users.map(user => `
-    <article class="admin-user-card">
-      <div class="admin-user-card-head">
-        <strong>${escapeHtml(user.displayName || user.username)}</strong>
-        <span>${user.protected ? 'Protected' : user.disabledAt ? 'Disabled' : user.activeSessions ? `Active (${user.activeSessions} sessions)` : 'Inactive'}</span>
-      </div>
-      <div class="admin-user-card-meta">@${escapeHtml(user.username)}</div>
-      <div class="admin-user-card-meta">Created: ${formatDateTime(user.createdAt)}</div>
-      <div class="admin-user-card-meta">Last login: ${formatDateTime(user.lastLoginAt)}</div>
-      <div class="admin-user-card-actions">
-        <button type="button" data-delete-user="${user.id}" ${user.protected ? 'disabled title="Protected account"' : ''}>Delete User</button>
-      </div>
-    </article>
-  `).join('') : '<div class="empty small-empty">No registered users.</div>';
+  els.usersList.innerHTML = users.length ? users.map(user => {
+    const temporaryLock = user.lockedUntil && new Date(user.lockedUntil).getTime() > Date.now();
+    const locked = Boolean(user.adminLocked) || temporaryLock;
+    const access = user.protected ? 'Protected' : user.disabledAt ? 'Disabled' : user.adminLocked ? 'Admin locked' : temporaryLock ? 'Temp locked' : 'Active';
+    return `<tr>
+      <td><strong>${escapeHtml(user.displayName || user.username)}</strong><small>@${escapeHtml(user.username)}</small></td>
+      <td>${user.email ? escapeHtml(user.email) : '&mdash;'}</td>
+      <td><span class="admin-user-state ${locked || user.disabledAt ? 'is-locked' : ''}">${access}</span>${temporaryLock ? `<small>Until ${formatDateTime(user.lockedUntil)}</small>` : ''}${!locked && user.failedLoginCount ? `<small>${Number(user.failedLoginCount)} of 5 failed attempts</small>` : ''}</td>
+      <td>${Number(user.favorites || 0).toLocaleString()}</td>
+      <td>${Number(user.activeSessions || 0).toLocaleString()}</td>
+      <td>${formatDateTime(user.createdAt)}</td>
+      <td>${formatDateTime(user.lastLoginAt)}</td>
+      <td class="admin-user-actions">
+        <button type="button" data-revoke-user="${user.id}" ${user.activeSessions ? '' : 'disabled'}>Revoke</button>
+        <button type="button" data-lock-user="${user.id}" data-locked="${locked ? '1' : '0'}" ${user.protected ? 'disabled title="Protected account"' : ''}>${locked ? 'Unlock' : 'Lock'}</button>
+        <button type="button" data-delete-user="${user.id}" ${user.protected ? 'disabled title="Protected account"' : ''}>Delete</button>
+      </td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="8" class="empty small-empty">No registered users.</td></tr>';
 }
 
 async function refreshUsers() {
@@ -854,9 +909,10 @@ function renderImport(snapshot) {
 }
 
 async function loadStatus() {
-  const [importResponse, stateResponse, loadedResponse, errorsResponse, viewStatsResponse, usersResponse, auditResponse, ignoredResponse, modelOptionsResponse] = await Promise.all([
+  const [importResponse, stateResponse, dashboardResponse, loadedResponse, errorsResponse, viewStatsResponse, usersResponse, auditResponse, ignoredResponse, modelOptionsResponse] = await Promise.all([
     fetch('/api/admin/import-status', { cache: 'no-store' }),
     fetch('/api/admin/state', { cache: 'no-store' }),
+    fetch('/api/admin/stats', { cache: 'no-store' }),
     fetch('/api/admin/loaded-models', { cache: 'no-store' }),
     fetch('/api/admin/import-errors', { cache: 'no-store' }),
     fetch('/api/admin/view-stats', { cache: 'no-store' }),
@@ -869,6 +925,7 @@ async function loadStatus() {
   const libraryState = await stateResponse.json();
   renderLibraryTotals(libraryState);
   renderAppSettings(libraryState);
+  renderDashboardStats(await dashboardResponse.json());
   renderLoadedModels(await loadedResponse.json());
   renderImportErrors(await errorsResponse.json());
   renderViewStats(await viewStatsResponse.json());
@@ -1289,6 +1346,18 @@ els.refreshViewStats.addEventListener('click', async () => {
   }
 });
 
+els.refreshDashboard.addEventListener('click', async () => {
+  els.error.textContent = '';
+  els.refreshDashboard.disabled = true;
+  try {
+    await refreshDashboardStats();
+  } catch (error) {
+    els.error.textContent = error.message || 'Dashboard refresh failed.';
+  } finally {
+    els.refreshDashboard.disabled = false;
+  }
+});
+
 els.refreshUsers.addEventListener('click', async () => {
   els.error.textContent = '';
   els.refreshUsers.disabled = true;
@@ -1302,26 +1371,45 @@ els.refreshUsers.addEventListener('click', async () => {
 });
 
 els.usersList.addEventListener('click', async event => {
+  const revokeButton = event.target.closest('[data-revoke-user]');
+  const lockButton = event.target.closest('[data-lock-user]');
   const deleteButton = event.target.closest('[data-delete-user]');
-  if (!deleteButton || deleteButton.disabled) return;
-  const id = Number(deleteButton.dataset.deleteUser);
-  const card = deleteButton.closest('.admin-user-card');
-  const username = card?.querySelector('.admin-user-card-meta')?.textContent || 'this user';
-  if (!window.confirm(`Delete ${username}? This also removes their saved favorites and viewing history.`)) return;
+  const actionButton = revokeButton || lockButton || deleteButton;
+  if (!actionButton || actionButton.disabled) return;
+  const id = Number((revokeButton?.dataset.revokeUser) || (lockButton?.dataset.lockUser) || deleteButton?.dataset.deleteUser);
+  const row = actionButton.closest('tr');
+  const username = row?.querySelector('td strong')?.textContent || 'this user';
+  let endpoint = '';
+  let body = { id };
+  let confirmation = '';
+  if (revokeButton) {
+    endpoint = '/api/admin/users/revoke-sessions';
+    confirmation = `Revoke all active sessions for ${username}?`;
+  } else if (lockButton) {
+    const locked = lockButton.dataset.locked !== '1';
+    endpoint = '/api/admin/users/lock';
+    body = { id, locked };
+    confirmation = locked ? `Lock ${username}? This signs the user out everywhere.` : `Unlock ${username}?`;
+  } else {
+    endpoint = '/api/admin/users/delete';
+    confirmation = `Delete ${username}? This also removes their saved favorites and viewing history.`;
+  }
+  if (!window.confirm(confirmation)) return;
   els.error.textContent = '';
-  deleteButton.disabled = true;
+  actionButton.disabled = true;
   try {
-    const response = await fetch('/api/admin/users/delete', {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify(body),
     });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || 'User deletion failed.');
-    renderUsers(payload);
+    if (!response.ok) throw new Error(payload.error || 'User update failed.');
+    if (revokeButton) await refreshUsers();
+    else renderUsers(payload);
   } catch (error) {
-    els.error.textContent = error.message || 'User deletion failed.';
-    deleteButton.disabled = false;
+    els.error.textContent = error.message || 'User update failed.';
+    actionButton.disabled = false;
   }
 });
 
@@ -1387,22 +1475,6 @@ els.instanceSettingsForm.addEventListener('submit', async (event) => {
   }
 });
 
-els.vacuumDb.addEventListener('click', async () => {
-  els.error.textContent = '';
-  els.vacuumDb.disabled = true;
-  try {
-    const response = await fetch('/api/admin/vacuum-db', { method: 'POST' });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || 'Vacuum failed.');
-    renderLibraryTotals({ runtime: payload.runtime });
-    await refreshLibraryTotals();
-  } catch (error) {
-    els.error.textContent = error.message || 'Vacuum failed.';
-  } finally {
-    els.vacuumDb.disabled = importActive;
-  }
-});
-
 els.clearErrors?.addEventListener('click', async () => {
   els.error.textContent = '';
   els.clearErrors.disabled = true;
@@ -1438,5 +1510,8 @@ initializeSchedulerTimePicker();
 setAdminPanel('main');
 loadStatus();
 window.setInterval(() => {
-  refreshLibraryTotals().catch(() => {});
-}, 5000);
+  refreshLiveStats().catch(() => {});
+}, 1000);
+window.setInterval(() => {
+  refreshDashboardStats().catch(() => {});
+}, 60000);

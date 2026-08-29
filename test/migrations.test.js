@@ -70,19 +70,41 @@ test('column migrations upgrade old user and gallery tables idempotently', () =>
   `);
   const migrations = service(db);
   migrations.migrateUserPreferenceColumns();
+  migrations.migrateUserSecurityColumns();
   migrations.migrateGalleryStorageColumns();
   migrations.migrateGalleryProviderColumn();
   migrations.migrateUserPreferenceColumns();
+  migrations.migrateUserSecurityColumns();
   migrations.migrateGalleryStorageColumns();
   migrations.migrateGalleryProviderColumn();
 
   assert.deepEqual(
     db.prepare('PRAGMA table_info(users)').all().map(column => column.name),
-    ['id', 'preload_model', 'preload_gallery']
+    ['id', 'preload_model', 'preload_gallery', 'email', 'avatar_path', 'failed_login_count', 'locked_until', 'admin_locked']
   );
   assert.deepEqual(
     db.prepare('PRAGMA table_info(galleries)').all().map(column => column.name),
     ['id', 'cover_name', 'image_bytes', 'thumb_bytes', 'source_provider']
+  );
+  db.close();
+});
+
+test('user security migration rejects case-only username duplicates', () => {
+  const db = new Database(':memory:');
+  db.exec(`CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT); INSERT INTO users VALUES (1, 'Alice'), (2, 'alice');`);
+  assert.throws(() => service(db).migrateUserSecurityColumns(), /differ only by case/);
+  assert.deepEqual(db.prepare('PRAGMA table_info(users)').all().map(column => column.name), ['id', 'username']);
+  db.close();
+});
+
+test('user security migration makes usernames case-insensitively unique', () => {
+  const db = new Database(':memory:');
+  currentSchema(db);
+  service(db).migrateUserSecurityColumns();
+  db.prepare(`INSERT INTO users (username, password_hash, display_name, created_at) VALUES ('Alice', 'hash', 'Alice', 'now')`).run();
+  assert.throws(
+    () => db.prepare(`INSERT INTO users (username, password_hash, display_name, created_at) VALUES ('alice', 'hash', 'Alice', 'now')`).run(),
+    /UNIQUE constraint failed/
   );
   db.close();
 });

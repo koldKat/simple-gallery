@@ -4,6 +4,67 @@
   color: var(--danger);
 }
 
+.admin-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.55rem;
+  padding: 0 0.65rem 0.65rem;
+}
+
+.admin-metric-stack {
+  display: grid;
+  align-content: start;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #12161c;
+}
+
+.admin-metric-stack h3 {
+  display: flex;
+  justify-content: space-between;
+  color: var(--accent);
+  font-size: 0.9rem;
+  line-height: 1.1;
+}
+
+.admin-metric-stack h3 small,
+.admin-metric-stack article small {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+
+.admin-metric-stack article {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(214, 222, 232, 0.08);
+}
+
+.admin-metric-stack article span {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.admin-metric-stack article strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.98rem;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1280px) {
+  .admin-dashboard-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .admin-stats {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));

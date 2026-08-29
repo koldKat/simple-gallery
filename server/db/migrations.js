@@ -186,6 +186,38 @@ function createDatabaseMigrations({ db, mediaRoot, galleryStorageStats, log = co
     }
   }
 
+  function migrateUserSecurityColumns() {
+    const initialColumns = new Set(db.prepare(`PRAGMA table_info(users)`).all().map(column => column.name));
+    if (initialColumns.has('username')) {
+      const duplicate = db.prepare(`
+        SELECT group_concat(username, ', ') AS usernames
+        FROM users
+        GROUP BY lower(username)
+        HAVING COUNT(*) > 1
+        LIMIT 1
+      `).get();
+      if (duplicate?.usernames) {
+        throw new Error(`Cannot apply case-insensitive username protection: duplicate usernames differ only by case (${duplicate.usernames}).`);
+      }
+    }
+    db.transaction(() => {
+      const columns = new Set(db.prepare(`PRAGMA table_info(users)`).all().map(column => column.name));
+      if (!columns.has('email')) db.exec(`ALTER TABLE users ADD COLUMN email TEXT;`);
+      if (!columns.has('avatar_path')) db.exec(`ALTER TABLE users ADD COLUMN avatar_path TEXT;`);
+      if (!columns.has('failed_login_count')) db.exec(`ALTER TABLE users ADD COLUMN failed_login_count INTEGER NOT NULL DEFAULT 0;`);
+      if (!columns.has('locked_until')) db.exec(`ALTER TABLE users ADD COLUMN locked_until TEXT;`);
+      if (!columns.has('admin_locked')) db.exec(`ALTER TABLE users ADD COLUMN admin_locked INTEGER NOT NULL DEFAULT 0;`);
+      if (initialColumns.has('username')) {
+        db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_nocase_unique ON users(username COLLATE NOCASE);`);
+      }
+      db.exec(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_unique
+        ON users(email)
+        WHERE email IS NOT NULL;
+      `);
+    })();
+  }
+
   function backfillGalleryStorageColumns() {
     const pending = db.prepare(`
       SELECT EXISTS(
@@ -299,6 +331,7 @@ function createDatabaseMigrations({ db, mediaRoot, galleryStorageStats, log = co
     migrateGalleryStorageColumns,
     migrateGalleryProviderColumn,
     migrateUserPreferenceColumns,
+    migrateUserSecurityColumns,
     backfillGalleryStorageColumns,
     repairShiftedRecoveredGalleryRows,
   };

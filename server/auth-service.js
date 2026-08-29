@@ -2,7 +2,71 @@
 
 const crypto = require('crypto');
 
-function createAuthService({ db, sendJson, sessionMaxAgeMs, now = () => Date.now() }) {
+const AUTH_FAILURE_WINDOW_MS = 15 * 60 * 1000;
+const AUTH_MAX_FAILURES_PER_WINDOW = 8;
+const AUTH_FAILURE_PRUNE_INTERVAL_MS = 60 * 1000;
+const AUTH_FAILURE_MAX_TRACKED_IPS = 10_000;
+
+function createAuthService({
+  db,
+  sendJson,
+  sessionMaxAgeMs,
+  now = () => Date.now(),
+  authFailureWindowMs = AUTH_FAILURE_WINDOW_MS,
+  authFailureMaxTrackedIps = AUTH_FAILURE_MAX_TRACKED_IPS,
+}) {
+  const authFailuresByIp = new Map();
+  let nextAuthFailurePruneAt = 0;
+
+  function clientIp(req) {
+    return String(req?.headers?.['x-forwarded-for'] || req?.socket?.remoteAddress || '')
+      .split(',')[0]
+      .trim();
+  }
+
+  function recentAuthFailures(ip) {
+    const key = String(ip || 'unknown');
+    const cutoff = now() - authFailureWindowMs;
+    const recent = (authFailuresByIp.get(key) || []).filter(at => at > cutoff);
+    if (recent.length) authFailuresByIp.set(key, recent);
+    else authFailuresByIp.delete(key);
+    return recent;
+  }
+
+  function pruneAuthFailures(timestamp = now()) {
+    if (timestamp < nextAuthFailurePruneAt) return;
+    const cutoff = timestamp - authFailureWindowMs;
+    for (const [key, attempts] of authFailuresByIp) {
+      const recent = attempts.filter(at => at > cutoff);
+      if (recent.length) authFailuresByIp.set(key, recent);
+      else authFailuresByIp.delete(key);
+    }
+    nextAuthFailurePruneAt = timestamp + AUTH_FAILURE_PRUNE_INTERVAL_MS;
+  }
+
+  function isAuthRateLimited(ip) {
+    return recentAuthFailures(ip).length >= AUTH_MAX_FAILURES_PER_WINDOW;
+  }
+
+  function recordAuthFailure(ip) {
+    const key = String(ip || 'unknown');
+    const timestamp = now();
+    pruneAuthFailures(timestamp);
+    const recent = recentAuthFailures(key);
+    if (!authFailuresByIp.has(key)) {
+      while (authFailuresByIp.size >= authFailureMaxTrackedIps) {
+        const oldestKey = authFailuresByIp.keys().next().value;
+        if (oldestKey === undefined) break;
+        authFailuresByIp.delete(oldestKey);
+      }
+    }
+    recent.push(timestamp);
+    authFailuresByIp.set(key, recent);
+  }
+
+  function clearAuthFailures(ip) {
+    authFailuresByIp.delete(String(ip || 'unknown'));
+  }
   function hashToken(token) {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
@@ -69,12 +133,15 @@ function createAuthService({ db, sendJson, sessionMaxAgeMs, now = () => Date.now
         users.id,
         users.username,
         users.display_name AS displayName,
+        users.avatar_path AS avatarUrl,
         users.preload_model AS preloadModel,
         users.preload_gallery AS preloadGallery,
         sessions.expires_at AS expiresAt
       FROM sessions
       JOIN users ON users.id = sessions.user_id
-      WHERE sessions.token_hash = ? AND users.disabled_at IS NULL
+      WHERE sessions.token_hash = ?
+        AND users.disabled_at IS NULL
+        AND users.admin_locked = 0
     `).get(tokenHash);
     if (!row) {
       cacheCurrentUser(req, null);
@@ -113,14 +180,17 @@ function createAuthService({ db, sendJson, sessionMaxAgeMs, now = () => Date.now
   }
 
   function publicUser(user) {
-    return user ? {
+    if (!user) return null;
+    const publicProfile = {
       id: user.id,
       username: user.username,
       displayName: user.displayName,
       preloadModel: Boolean(user.preloadModel),
       preloadGallery: Boolean(user.preloadGallery),
       favoriteCount: favoriteCountForUser(user.id),
-    } : null;
+    };
+    if (user.avatarUrl) publicProfile.avatarUrl = user.avatarUrl;
+    return publicProfile;
   }
 
   function actorKeyForRequest(req) {
@@ -168,6 +238,10 @@ function createAuthService({ db, sendJson, sessionMaxAgeMs, now = () => Date.now
     actorKeyForRequest,
     requireUser,
     createSession,
+    clientIp,
+    isAuthRateLimited,
+    recordAuthFailure,
+    clearAuthFailures,
   };
 }
 

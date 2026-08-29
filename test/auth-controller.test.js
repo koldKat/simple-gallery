@@ -18,6 +18,7 @@ class FakeElement {
     this.value = '';
     this.checked = false;
     this.textContent = '';
+    this.hidden = false;
   }
   set innerHTML(value) {
     this._innerHTML = value;
@@ -27,6 +28,14 @@ class FakeElement {
   append(...children) { this.children.push(...children); }
   addEventListener(name, listener) { this.listeners.set(name, listener); }
   dispatch(name, event = {}) { return this.listeners.get(name)?.(event); }
+  setAttribute() {}
+  focus() {}
+  showModal() { this.open = true; }
+  close() {
+    this.open = false;
+    this.dispatch('close');
+  }
+  remove() { this.removed = true; }
 }
 
 function descendants(root) {
@@ -49,10 +58,12 @@ function fixture(createAuthController, options = {}) {
     favorites: { imageCount: 2 },
   };
   const authElement = new FakeElement('root');
+  const body = new FakeElement('body');
   const calls = [];
   const documentObject = {
     createElement: tagName => new FakeElement(tagName),
     createTextNode: text => ({ textContent: text }),
+    body,
   };
   let preferences = { preloadModel: false, preloadGallery: false };
   const controller = createAuthController({
@@ -78,7 +89,7 @@ function fixture(createAuthController, options = {}) {
     showNotice: message => calls.push({ type: 'notice', message }),
     documentObject,
   });
-  return { authElement, calls, controller, state };
+  return { authElement, body, calls, controller, state };
 }
 
 test('login submits credentials and refreshes personalized state in order', async () => {
@@ -120,6 +131,34 @@ test('anonymous preload changes stay in browser settings', async () => {
   });
 });
 
+test('registration opens a dialog and submits confirmation and optional email', async () => {
+  const { createAuthController } = await loadModule();
+  const context = fixture(createAuthController);
+  context.controller.render();
+  const register = descendants(context.authElement).find(node => node.textContent === 'Register');
+  register.dispatch('click');
+
+  const dialog = context.body.children.find(node => node.tagName === 'dialog');
+  assert.ok(dialog);
+  const nodes = descendants(dialog);
+  nodes.find(node => node.placeholder === 'Username').value = 'alex';
+  nodes.find(node => node.placeholder === 'Password').value = 'secret1';
+  nodes.find(node => node.placeholder === 'Confirm password').value = 'secret1';
+  nodes.find(node => node.placeholder === 'Email (optional)').value = 'alex@example.test';
+  const form = nodes.find(node => node.tagName === 'form');
+  await form.dispatch('submit', { preventDefault() {} });
+
+  const request = context.calls.find(call => call.type === 'fetch');
+  assert.equal(request.url, '/api/auth/register');
+  assert.deepEqual(JSON.parse(request.request.body), {
+    username: 'alex',
+    password: 'secret1',
+    confirmPassword: 'secret1',
+    email: 'alex@example.test',
+  });
+  assert.equal(dialog.removed, true);
+});
+
 test('logout clears private state and leaves Favorites mode', async () => {
   const { createAuthController } = await loadModule();
   const context = fixture(createAuthController, {
@@ -136,4 +175,19 @@ test('logout clears private state and leaves Favorites mode', async () => {
   assert.equal(context.calls[0].url, '/api/auth/logout');
   assert.equal(context.calls.some(call => call.type === 'clear-user-library'), true);
   assert.equal(context.calls.at(-1).type, 'load-state');
+});
+
+test('logged-in users can open the profile dialog', async () => {
+  const { createAuthController } = await loadModule();
+  const context = fixture(createAuthController, {
+    user: { id: 7, username: 'alex', displayName: 'Alex' },
+  });
+  context.controller.render();
+  const profile = descendants(context.authElement).find(node => node.textContent === 'Profile');
+  await profile.dispatch('click');
+
+  const dialog = context.body.children.find(node => node.tagName === 'dialog');
+  assert.ok(dialog);
+  assert.equal(descendants(dialog).find(node => node.textContent === 'Your profile').tagName, 'h2');
+  assert.equal(context.calls.find(call => call.type === 'fetch').url, '/api/auth/profile');
 });

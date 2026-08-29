@@ -1,25 +1,33 @@
 'use strict';
 
-function readRequestBody(req, limitBytes = 1024 * 64) {
+function readRequestBuffer(req, limitBytes = 1024 * 64) {
   return new Promise((resolve, reject) => {
-    let body = '';
+    const chunks = [];
+    let size = 0;
     let rejected = false;
     req.on('data', (chunk) => {
       if (rejected) return;
-      body += chunk;
-      if (Buffer.byteLength(body) > limitBytes) {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      size += buffer.length;
+      if (size > limitBytes) {
         rejected = true;
         req.pause();
         reject(new Error('Request body too large.'));
+        return;
       }
+      chunks.push(buffer);
     });
     req.on('end', () => {
-      if (!rejected) resolve(body);
+      if (!rejected) resolve(Buffer.concat(chunks, size));
     });
     req.on('error', (error) => {
       if (!rejected) reject(error);
     });
   });
+}
+
+function readRequestBody(req, limitBytes = 1024 * 64) {
+  return readRequestBuffer(req, limitBytes).then(buffer => buffer.toString('utf8'));
 }
 
 function sendJson(res, statusCode, payload, headers = {}) {
@@ -48,6 +56,7 @@ function sendHtml(res, statusCode, html) {
 
 module.exports = {
   readRequestBody,
+  readRequestBuffer,
   sendHtml,
   sendJson,
   sendText,

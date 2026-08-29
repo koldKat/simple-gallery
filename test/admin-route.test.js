@@ -71,6 +71,43 @@ test('admin state is returned without the full library payload', () => {
   }]);
 });
 
+test('admin summary and live endpoints return their dedicated payloads', () => {
+  const output = recorder();
+  const context = {
+    isLocalhostRequest: () => true,
+    sendJson: output.sendJson,
+    adminSummaryStats: () => ({ library: { models: 2 } }),
+    liveRuntimeStats: () => ({ appAgeSeconds: 10 }),
+  };
+  handleAdminRoute(context, { method: 'GET' }, {}, { pathname: '/api/admin/stats' });
+  handleAdminRoute(context, { method: 'GET' }, {}, { pathname: '/api/admin/live' });
+  assert.deepEqual(output.calls, [
+    { status: 200, payload: { library: { models: 2 } } },
+    { status: 200, payload: { appAgeSeconds: 10 } },
+  ]);
+});
+
+test('admin account lock and session revoke endpoints dispatch their actions', async () => {
+  const output = recorder();
+  const calls = [];
+  const context = {
+    isLocalhostRequest: () => true,
+    sendJson: output.sendJson,
+    readRequestBody: async () => JSON.stringify({ id: 7, locked: true }),
+    revokeAdminUserSessions(id) { calls.push(['revoke', id]); return { cleared: 2 }; },
+    setAdminUserLocked(id, locked) { calls.push(['lock', id, locked]); return { users: [] }; },
+  };
+  handleAdminRoute(context, { method: 'POST' }, {}, { pathname: '/api/admin/users/revoke-sessions' });
+  await waitTurn();
+  handleAdminRoute(context, { method: 'POST' }, {}, { pathname: '/api/admin/users/lock' });
+  await waitTurn();
+  assert.deepEqual(calls, [['revoke', 7], ['lock', 7, true]]);
+  assert.deepEqual(output.calls, [
+    { status: 200, payload: { cleared: 2 } },
+    { status: 200, payload: { users: [] } },
+  ]);
+});
+
 test('admin route reads live loaded-model state through its getter', () => {
   const output = recorder();
   let loaded = null;

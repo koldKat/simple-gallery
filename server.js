@@ -11,6 +11,7 @@ const { createDatabaseMigrations } = require('./server/db/migrations');
 console.log('[startup] Database opened.');
 const {
   readRequestBody,
+  readRequestBuffer,
   sendHtml,
   sendJson,
   sendText,
@@ -44,6 +45,7 @@ const { createTrafficService } = require('./server/traffic');
 const { createPageRenderer } = require('./server/page-renderer');
 const { renderWebAppManifest } = require('./server/web-app-manifest');
 const { createAuthService } = require('./server/auth-service');
+const { createAvatarService } = require('./server/avatar-service');
 const { createSettingsStore } = require('./server/settings-store');
 const { createViewTracker } = require('./server/view-tracker');
 const {
@@ -75,6 +77,7 @@ const { createModelImporter } = require('./server/model-importer');
 const { createImportRunner } = require('./server/import-runner');
 const { createGalleryVerifier } = require('./server/gallery-verifier');
 const { createDatabaseRuntime, withBusyRetry } = require('./server/database-runtime');
+const { createUptimeTracker } = require('./server/uptime-tracker');
 const { createLibraryStateService } = require('./server/library-state');
 const { createLibraryRepository } = require('./server/library-repository');
 const { createLibraryScanner, emptyTotals, addTotals } = require('./server/library-scanner');
@@ -128,6 +131,7 @@ const {
 } = require('./server/config');
 
 const sockets = new Set();
+const avatarService = createAvatarService({ publicRoot: ROOT });
 let importJob = null;
 let stopAfterCurrentModelRequested = false;
 let pauseRescanAllRequested = false;
@@ -138,6 +142,7 @@ let lastForegroundActivityAt = 0;
 let shuttingDown = false;
 let shutdownTimer = null;
 let server = null;
+let uptimeTracker = null;
 const backupService = createBackupService({
   db,
   backupDirectory: DB_BACKUP_DIR,
@@ -258,6 +263,10 @@ const {
   actorKeyForRequest,
   requireUser,
   createSession,
+  clientIp,
+  isAuthRateLimited,
+  recordAuthFailure,
+  clearAuthFailures,
 } = createAuthService({
   db,
   sendJson,
@@ -292,12 +301,14 @@ const {
 const {
   checkpointWal,
   runtimeStats,
+  liveRuntimeStats,
   vacuumDatabase,
 } = createDatabaseRuntime({
   db,
   dbPath: DB_PATH,
   fileSize,
   trafficSnapshot: () => trafficService.snapshot(),
+  uptimeStats: () => uptimeTracker?.stats() || {},
 });
 const {
   migrateGallerySourceUrlUniqueness,
@@ -305,6 +316,7 @@ const {
   migrateGalleryStorageColumns,
   migrateGalleryProviderColumn,
   migrateUserPreferenceColumns,
+  migrateUserSecurityColumns,
   backfillGalleryStorageColumns,
   repairShiftedRecoveredGalleryRows,
 } = createDatabaseMigrations({ db, mediaRoot, galleryStorageStats });
@@ -420,6 +432,9 @@ const {
   viewStats: viewStatsResponse,
   users: adminUsersResponse,
   deleteUser: deleteAdminUser,
+  revokeUserSessions: revokeAdminUserSessions,
+  setUserLocked: setAdminUserLocked,
+  summaryStats: adminSummaryStats,
   modelOptions: adminModelOptionsResponse,
 } = createAdminReporting({
   db,
@@ -845,11 +860,21 @@ function appMetadata(options = {}) {
 
 console.log('[startup] Initializing database schema...');
 initializeSchema({ db, withBusyRetry, defaultVersionLabel: DEFAULT_VERSION_LABEL, nowIso });
+if (!IS_WORKER) {
+  uptimeTracker = createUptimeTracker({
+    db,
+    getSetting: appSettingSafe,
+    setSetting: setAppSetting,
+    graceSeconds: 15,
+  });
+  uptimeTracker.start();
+}
 console.log('[startup] Loading traffic counters...');
 trafficService.load();
 console.log('[startup] Running database migrations...');
 migrateGallerySourceUrlUniqueness();
 migrateUserPreferenceColumns();
+migrateUserSecurityColumns();
 migrateGalleryStorageColumns();
 migrateGalleryProviderColumn();
 repairRenamedGalleryForeignKeys();
@@ -941,6 +966,7 @@ function shutdown(signal = 'SIGINT') {
     backupService.stop();
 
     dbHousekeeping.stop();
+    uptimeTracker?.stop();
 
     if (server) {
       if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
@@ -1000,6 +1026,10 @@ const adminRouteContext = {
   viewStatsResponse,
   adminUsersResponse,
   deleteAdminUser,
+  revokeAdminUserSessions,
+  setAdminUserLocked,
+  adminSummaryStats,
+  liveRuntimeStats,
   adminModelOptionsResponse,
   loadImportErrors,
   dismissImportError,
@@ -1039,6 +1069,7 @@ server = http.createServer((req, res) => {
   if (handleAuthRoute({
     db,
     readRequestBody,
+    readRequestBuffer,
     sendJson,
     publicUser,
     currentUser,
@@ -1054,6 +1085,11 @@ server = http.createServer((req, res) => {
     clearSessionCookie,
     favoriteCountForUser,
     unseenStatsForUser,
+    clientIp,
+    isAuthRateLimited,
+    recordAuthFailure,
+    clearAuthFailures,
+    avatarService,
   }, req, res, url)) {
     return;
   }

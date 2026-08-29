@@ -420,13 +420,55 @@ input:disabled {
   justify-content: end;
 }
 
-.auth-profile-head > button {
-  width: 118px;
-}
-
 .auth-profile-head > *,
 .auth-profile-settings > * {
   height: 28px;
+}
+
+.auth-identity,
+.auth-profile-actions {
+  display: grid;
+  min-width: 0;
+}
+
+.auth-identity {
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem;
+  width: 118px;
+}
+
+.auth-profile-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  width: 118px;
+}
+
+.header-avatar,
+.profile-avatar {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--accent);
+  background: #252c36;
+  font-weight: 700;
+}
+
+.header-avatar {
+  width: 22px;
+  height: 22px;
+  font-size: 0.72rem;
+}
+
+.header-avatar img,
+.profile-avatar img,
+.profile-avatar-content img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .auth-credential-row,
@@ -450,6 +492,83 @@ input:disabled {
   line-height: 1.15;
   max-width: 240px;
   text-align: right;
+}
+
+.registration-dialog,
+.profile-dialog {
+  position: fixed;
+  inset: 0;
+  width: min(24rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  background: #171c23;
+  box-shadow: 0 1.25rem 4rem rgba(0, 0, 0, 0.55);
+  overflow: auto;
+}
+
+.registration-dialog::backdrop,
+.profile-dialog::backdrop {
+  background: rgba(7, 9, 12, 0.72);
+}
+
+.registration-dialog form,
+.profile-dialog form {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1rem;
+}
+
+.registration-dialog h2,
+.profile-dialog h2 {
+  margin: 0 0 0.15rem;
+  font-size: 1.08rem;
+}
+
+.registration-dialog input,
+.profile-dialog input {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 0.6rem;
+  box-sizing: border-box;
+}
+
+.registration-dialog-error,
+.profile-dialog-error {
+  margin: 0;
+  color: #ff927d;
+  font-size: 0.82rem;
+}
+
+.registration-dialog-actions,
+.profile-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  margin-top: 0.2rem;
+}
+
+.profile-avatar-editor {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.2rem 0;
+}
+
+.profile-avatar-large {
+  width: 68px;
+  height: 68px;
+  font-size: 1.35rem;
+}
+
+.profile-avatar-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
 }
 
 .auth-username {
