@@ -27,7 +27,7 @@ Node.js and SQLite gallery application served by `server.js`.
 - `server/user-library.js` builds personalized state, gallery image payloads, and paginated Favorites responses.
 - `server/rescan-checkpoints.js` owns Rescan All duration metadata and resumable checkpoint recovery.
 - `server/import-errors.js` persists and broadcasts importer failures.
-- `server/admin-reporting.js` builds read-only view and user reports plus Admin model choices from live database and traffic state.
+- `server/admin-reporting.js` builds view/user reports, protected-account checks, and Admin model choices from live database and traffic state.
 - `server/db/`, `server/database-runtime.js`, `server/db-housekeeping.js`, and `server/backup.js` own the database connection, schema initialization, busy retries, runtime metrics, maintenance operations, periodic cleanup lifecycle, and backup retention.
 - `server/event-bus.js`, `server/traffic.js`, `server/page-renderer.js`, `server/web-app-manifest.js`, `server/sitemap.js`, `server/routes/site.js`, and `server/static-handler.js` own server-sent events, request accounting, public HTML/SEO, installable-app metadata, sitemap and public route dispatch, and static-file policy.
 - `server/auto-rescan-service.js` owns the scheduled Rescan All timer, retry lifecycle, and worker dispatch.
@@ -123,6 +123,10 @@ The Admin page does not embed source URLs or configured values in its HTML or Ja
 Admin HTML, APIs, scans, imports, and database maintenance are restricted to localhost requests. Public routes expose only gallery browsing, account actions, personalized state, favorites, seen state, view recording, sitemaps, and server-sent status updates.
 
 Auto Rescan All can be enabled for a selected 24-hour time and one or more weekdays. Installations without a saved weekday selection run every day, preserving the original schedule behavior.
+
+### User Management
+
+Newly registered users are signed in immediately, and their registration time is recorded as their first login. **Admin > Users** lists account activity and can permanently delete an account. Deletion also removes that user's sessions, favorites, seen state, and other user-owned records through database foreign-key cascades. The `koldKat` account is protected in both the Admin UI and API and cannot be deleted.
 
 ### Application Version
 

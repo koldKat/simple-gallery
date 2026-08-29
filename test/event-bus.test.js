@@ -7,6 +7,7 @@ const { createServerEventBus } = require('../server/event-bus');
 function eventFixture(overrides = {}) {
   const writes = [];
   let closeHandler = null;
+  let responseErrorHandler = null;
   const request = {
     on(event, handler) {
       if (event === 'close') closeHandler = handler;
@@ -15,9 +16,12 @@ function eventFixture(overrides = {}) {
   const response = {
     headers: null,
     ended: false,
+    destroyed: false,
+    writableEnded: false,
     writeHead(status, headers) { this.headers = { status, ...headers }; },
     write(value) { writes.push(value); },
-    end() { this.ended = true; },
+    end() { this.ended = true; this.writableEnded = true; },
+    on(event, handler) { if (event === 'error') responseErrorHandler = handler; },
   };
   const bus = createServerEventBus({
     isWorker: false,
@@ -26,7 +30,14 @@ function eventFixture(overrides = {}) {
     getViewStats: () => ({ total: 7 }),
     ...overrides,
   });
-  return { bus, request, response, writes, close: () => closeHandler?.() };
+  return {
+    bus,
+    request,
+    response,
+    writes,
+    close: () => closeHandler?.(),
+    fail: () => responseErrorHandler?.(new Error('socket closed')),
+  };
 }
 
 test('worker broadcasts are forwarded to the parent process', () => {
@@ -53,9 +64,28 @@ test('event streams receive initial state and broadcasts until disconnected', ()
 
   assert.equal(response.headers.status, 200);
   assert.match(response.headers['content-type'], /text\/event-stream/);
+  assert.equal(response.headers['x-accel-buffering'], 'no');
   assert.match(writes[0], /event: state/);
   assert.match(writes[1], /event: notice/);
   assert.equal(writes.length, 2);
+});
+
+test('event streams keep idle proxy connections alive and discard failed clients', () => {
+  const intervals = [];
+  const cleared = [];
+  const { bus, request, response, writes, fail } = eventFixture({
+    setIntervalFn: callback => { intervals.push(callback); return callback; },
+    clearIntervalFn: timer => cleared.push(timer),
+  });
+  bus.handleEvents(request, response);
+  assert.equal(intervals.length, 1);
+  intervals[0]();
+  assert.match(writes.at(-1), /^: keep-alive/);
+
+  fail();
+  bus.broadcast('notice', { message: 'ignored' });
+  assert.equal(writes.some(value => /ignored/.test(value)), false);
+  assert.equal(cleared.length, 1);
 });
 
 test('scanned URL broadcasts are throttled and use the latest payload', () => {

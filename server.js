@@ -419,11 +419,13 @@ const {
 const {
   viewStats: viewStatsResponse,
   users: adminUsersResponse,
+  deleteUser: deleteAdminUser,
   modelOptions: adminModelOptionsResponse,
 } = createAdminReporting({
   db,
   getRuntimeStats: runtimeStats,
   nowIso,
+  withBusyRetry,
 });
 const {
   snapshot: syncScannedUrlsFile,
@@ -997,6 +999,7 @@ const adminRouteContext = {
   syncScannedUrlsFile,
   viewStatsResponse,
   adminUsersResponse,
+  deleteAdminUser,
   adminModelOptionsResponse,
   loadImportErrors,
   dismissImportError,

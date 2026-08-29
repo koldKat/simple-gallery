@@ -736,11 +736,14 @@ function renderUsers(payload) {
     <article class="admin-user-card">
       <div class="admin-user-card-head">
         <strong>${escapeHtml(user.displayName || user.username)}</strong>
-        <span>${user.disabledAt ? 'Disabled' : user.activeSessions ? `Active (${user.activeSessions} sessions)` : 'Inactive'}</span>
+        <span>${user.protected ? 'Protected' : user.disabledAt ? 'Disabled' : user.activeSessions ? `Active (${user.activeSessions} sessions)` : 'Inactive'}</span>
       </div>
       <div class="admin-user-card-meta">@${escapeHtml(user.username)}</div>
       <div class="admin-user-card-meta">Created: ${formatDateTime(user.createdAt)}</div>
       <div class="admin-user-card-meta">Last login: ${formatDateTime(user.lastLoginAt)}</div>
+      <div class="admin-user-card-actions">
+        <button type="button" data-delete-user="${user.id}" ${user.protected ? 'disabled title="Protected account"' : ''}>Delete User</button>
+      </div>
     </article>
   `).join('') : '<div class="empty small-empty">No registered users.</div>';
 }
@@ -1295,6 +1298,30 @@ els.refreshUsers.addEventListener('click', async () => {
     els.error.textContent = error.message || 'Users load failed.';
   } finally {
     els.refreshUsers.disabled = false;
+  }
+});
+
+els.usersList.addEventListener('click', async event => {
+  const deleteButton = event.target.closest('[data-delete-user]');
+  if (!deleteButton || deleteButton.disabled) return;
+  const id = Number(deleteButton.dataset.deleteUser);
+  const card = deleteButton.closest('.admin-user-card');
+  const username = card?.querySelector('.admin-user-card-meta')?.textContent || 'this user';
+  if (!window.confirm(`Delete ${username}? This also removes their saved favorites and viewing history.`)) return;
+  els.error.textContent = '';
+  deleteButton.disabled = true;
+  try {
+    const response = await fetch('/api/admin/users/delete', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || 'User deletion failed.');
+    renderUsers(payload);
+  } catch (error) {
+    els.error.textContent = error.message || 'User deletion failed.';
+    deleteButton.disabled = false;
   }
 });
 

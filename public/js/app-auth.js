@@ -49,15 +49,30 @@ export function createAuthController(options) {
       fieldsRow.className = 'auth-credential-row';
       const buttonsRow = documentObject.createElement('div');
       buttonsRow.className = 'auth-button-row';
+      const validationMessage = documentObject.createElement('div');
+      validationMessage.className = 'auth-validation-message';
+      validationMessage.setAttribute('role', 'alert');
+      validationMessage.hidden = true;
+
+      function setValidationMessage(message = '') {
+        validationMessage.textContent = message;
+        validationMessage.hidden = !message;
+      }
 
       const username = documentObject.createElement('input');
       username.type = 'text';
       username.placeholder = 'Username';
       username.autocomplete = 'username';
+      username.minLength = 3;
+      username.maxLength = 40;
+      username.pattern = '[A-Za-z0-9_.-]{3,40}';
+      username.title = '3-40 letters, numbers, dots, dashes, or underscores';
       const password = documentObject.createElement('input');
       password.type = 'password';
       password.placeholder = 'Password';
       password.autocomplete = 'current-password';
+      password.minLength = 6;
+      password.title = 'At least 6 characters';
       const login = documentObject.createElement('button');
       login.type = 'button';
       login.textContent = 'Login';
@@ -66,9 +81,15 @@ export function createAuthController(options) {
       register.textContent = 'Register';
 
       async function submit(endpoint) {
+        setValidationMessage();
+        const submittedUsername = username.value.trim();
+        if (!/^[a-zA-Z0-9_.-]{3,40}$/.test(submittedUsername)) {
+          throw new Error('Username must be 3-40 letters, numbers, dots, dashes, or underscores.');
+        }
+        if (password.value.length < 6) throw new Error('Password must be at least 6 characters.');
         const payload = await fetchJson(endpoint, {
           method: 'POST',
-          body: JSON.stringify({ username: username.value.trim(), password: password.value }),
+          body: JSON.stringify({ username: submittedUsername, password: password.value }),
         });
         state.user = payload.user;
         state.userStats = null;
@@ -81,11 +102,20 @@ export function createAuthController(options) {
         await loadState();
       }
 
-      login.addEventListener('click', () => submit('/api/auth/login').catch(error => showNotice(error.message)));
-      register.addEventListener('click', () => submit('/api/auth/register').catch(error => showNotice(error.message)));
+      function submitWithFeedback(endpoint) {
+        submit(endpoint).catch(error => {
+          setValidationMessage(error.message || 'Unable to sign in.');
+          showNotice(error.message);
+        });
+      }
+
+      username.addEventListener('input', () => setValidationMessage());
+      password.addEventListener('input', () => setValidationMessage());
+      login.addEventListener('click', () => submitWithFeedback('/api/auth/login'));
+      register.addEventListener('click', () => submitWithFeedback('/api/auth/register'));
       fieldsRow.append(username, password);
       buttonsRow.append(login, register);
-      authRow.append(fieldsRow, buttonsRow);
+      authRow.append(fieldsRow, buttonsRow, validationMessage);
     }
 
     const settings = documentObject.createElement('div');

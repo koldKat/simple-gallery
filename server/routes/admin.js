@@ -8,7 +8,7 @@ function handleAdminRoute(ctx, req, res, url) {
     normalizeAutoRescanTime, normalizedJsonSetting, scheduleAutoRescan, broadcast, stateNotice,
     getImportJob, requestWorker, scanLibrary, getScannedUrlPayload, auditSavedModelUrls,
     ignoredModelUrlsResponse, ignoreModelUrl, unignoreModelUrl, syncScannedUrlsFile,
-    viewStatsResponse, adminUsersResponse, adminModelOptionsResponse, loadImportErrors, dismissImportError,
+    viewStatsResponse, adminUsersResponse, deleteAdminUser, adminModelOptionsResponse, loadImportErrors, dismissImportError,
     clearImportErrors, vacuumDatabase, runtimeStats, getLoadedModelList,
   } = ctx;
 
@@ -154,6 +154,15 @@ function handleAdminRoute(ctx, req, res, url) {
   }
   if (url.pathname === '/api/admin/users') {
     sendJson(res, 200, adminUsersResponse());
+    return true;
+  }
+  if (url.pathname === '/api/admin/users/delete' && req.method === 'POST') {
+    readRequestBody(req)
+      .then(body => {
+        const payload = JSON.parse(body || '{}');
+        sendJson(res, 200, deleteAdminUser(payload.id));
+      })
+      .catch(error => sendJson(res, 400, { error: error.message || 'User deletion failed.' }));
     return true;
   }
   if (url.pathname === '/api/admin/model-options') {

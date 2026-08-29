@@ -1,6 +1,11 @@
 'use strict';
 
-function createAdminReporting({ db, getRuntimeStats, nowIso, viewLimit = 100 }) {
+function createAdminReporting({ db, getRuntimeStats, nowIso, withBusyRetry = callback => callback(), viewLimit = 100 }) {
+  const protectedUsernames = new Set(['koldkat']);
+
+  function isProtectedUser(row) {
+    return protectedUsernames.has(String(row?.username || '').toLowerCase());
+  }
   function viewStats() {
     const countries = getRuntimeStats().remoteCountryTraffic || [];
     const totals = {
@@ -74,8 +79,19 @@ function createAdminReporting({ db, getRuntimeStats, nowIso, viewLimit = 100 }) 
         lastLoginAt: row.lastLoginAt,
         disabledAt: row.disabledAt,
         activeSessions: Number(row.activeSessions || 0),
+        protected: isProtectedUser(row),
       })),
     };
+  }
+
+  function deleteUser(userId) {
+    const id = Number(userId);
+    if (!Number.isInteger(id) || id <= 0) throw new Error('Invalid user.');
+    const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(id);
+    if (!user) throw new Error('User not found.');
+    if (isProtectedUser(user)) throw new Error('The koldKat account is protected and cannot be deleted.');
+    withBusyRetry(() => db.prepare('DELETE FROM users WHERE id = ?').run(id));
+    return users();
   }
 
   function modelOptions() {
@@ -88,7 +104,7 @@ function createAdminReporting({ db, getRuntimeStats, nowIso, viewLimit = 100 }) 
     };
   }
 
-  return { viewStats, users, modelOptions };
+  return { viewStats, users, deleteUser, modelOptions };
 }
 
 module.exports = { createAdminReporting };

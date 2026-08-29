@@ -33,6 +33,15 @@ test('admin route rejects remote requests before dispatch', () => {
   assert.deepEqual(output.calls, [{ status: 403, payload: { error: 'Admin API is only available from localhost.' } }]);
 });
 
+test('admin user deletion remains localhost-only', () => {
+  const output = recorder();
+  handleAdminRoute({
+    isLocalhostRequest: () => false,
+    sendJson: output.sendJson,
+  }, { method: 'POST' }, {}, { pathname: '/api/admin/users/delete' });
+  assert.deepEqual(output.calls, [{ status: 403, payload: { error: 'Admin API is only available from localhost.' } }]);
+});
+
 test('admin state is returned without the full library payload', () => {
   const output = recorder();
   const handled = handleAdminRoute({

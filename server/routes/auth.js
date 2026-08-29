@@ -41,11 +41,16 @@ function handleAuthRoute(ctx, req, res, url) {
         if (!/^[a-zA-Z0-9_.-]{3,40}$/.test(username)) throw new Error('Username must be 3-40 letters, numbers, dots, dashes, or underscores.');
         if (password.length < 6) throw new Error('Password must be at least 6 characters.');
         const displayName = String(payload.displayName || username).trim().slice(0, 80) || username;
-        const result = db.prepare(`
-          INSERT INTO users (username, password_hash, display_name, created_at)
-          VALUES (?, ?, ?, ?)
-        `).run(username, hashPassword(password), displayName, nowIso());
-        const session = createSession(result.lastInsertRowid);
+        const registeredAt = nowIso();
+        const passwordHash = hashPassword(password);
+        const registerAccount = db.transaction(() => {
+          const result = db.prepare(`
+            INSERT INTO users (username, password_hash, display_name, created_at, last_login_at)
+            VALUES (?, ?, ?, ?, ?)
+          `).run(username, passwordHash, displayName, registeredAt, registeredAt);
+          return { result, session: createSession(result.lastInsertRowid) };
+        });
+        const { result, session } = withBusyRetry(registerAccount);
         sendJson(res, 200, {
           user: {
             id: result.lastInsertRowid,
@@ -57,7 +62,13 @@ function handleAuthRoute(ctx, req, res, url) {
           },
         }, { 'set-cookie': sessionCookie(session.token, session.expiresAt) });
       })
-      .catch(error => sendJson(res, 400, { error: error.message || 'Register failed.' }));
+      .catch(error => {
+        if (/UNIQUE constraint failed: users\.username/i.test(String(error?.message || ''))) {
+          sendJson(res, 409, { error: 'Username is already taken.' });
+          return;
+        }
+        sendJson(res, 400, { error: error.message || 'Register failed.' });
+      });
     return true;
   }
 

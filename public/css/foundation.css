@@ -443,6 +443,15 @@ input:disabled {
   width: 100%;
 }
 
+.auth-validation-message {
+  grid-column: 1 / -1;
+  color: #ff927d;
+  font-size: 0.76rem;
+  line-height: 1.15;
+  max-width: 240px;
+  text-align: right;
+}
+
 .auth-username {
   display: grid;
   align-items: center;

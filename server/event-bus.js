@@ -8,11 +8,51 @@ function createServerEventBus({
   throttleMs = 1000,
   setTimer = setTimeout,
   clearTimer = clearTimeout,
+  heartbeatMs = 25000,
+  setIntervalFn = setInterval,
+  clearIntervalFn = clearInterval,
 }) {
   const clients = new Set();
   let scannedUrlsTimer = null;
   let pendingScannedUrls = null;
   let viewStatsTimer = null;
+  let heartbeatTimer = null;
+
+  function stopHeartbeat() {
+    if (!heartbeatTimer) return;
+    clearIntervalFn(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+
+  function startHeartbeat() {
+    if (isWorker || heartbeatTimer || !clients.size) return;
+    heartbeatTimer = setIntervalFn(() => {
+      for (const response of clients) writeToClient(response, ': keep-alive\n\n');
+      if (!clients.size) stopHeartbeat();
+    }, heartbeatMs);
+    heartbeatTimer.unref?.();
+  }
+
+  function removeClient(response) {
+    clients.delete(response);
+    if (!clients.size) stopHeartbeat();
+  }
+
+  function writeToClient(response, body) {
+    if (!response || response.destroyed || response.writableEnded) {
+      removeClient(response);
+      return false;
+    }
+    try {
+      response.write(body);
+      return true;
+    } catch {
+      // A browser or reverse proxy may close an SSE connection between events.
+      // It must not be allowed to interrupt unrelated API requests.
+      removeClient(response);
+      return false;
+    }
+  }
 
   function broadcast(event, payload) {
     if (isWorker) {
@@ -20,7 +60,7 @@ function createServerEventBus({
       return;
     }
     const body = `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
-    for (const response of clients) response.write(body);
+    for (const response of clients) writeToClient(response, body);
   }
 
   function handleEvents(req, res) {
@@ -28,10 +68,15 @@ function createServerEventBus({
       'content-type': 'text/event-stream; charset=utf-8',
       'cache-control': 'no-store',
       connection: 'keep-alive',
+      'x-accel-buffering': 'no',
     });
-    res.write(`event: state\ndata: ${JSON.stringify(getStateNotice())}\n\n`);
+    res.flushHeaders?.();
     clients.add(res);
-    req.on('close', () => clients.delete(res));
+    startHeartbeat();
+    writeToClient(res, `event: state\ndata: ${JSON.stringify(getStateNotice())}\n\n`);
+    req.on('close', () => removeClient(res));
+    res.on?.('close', () => removeClient(res));
+    res.on?.('error', () => removeClient(res));
   }
 
   function scheduleScannedUrls(payload) {
@@ -57,12 +102,13 @@ function createServerEventBus({
   function close() {
     if (scannedUrlsTimer) clearTimer(scannedUrlsTimer);
     if (viewStatsTimer) clearTimer(viewStatsTimer);
+    stopHeartbeat();
     scannedUrlsTimer = null;
     viewStatsTimer = null;
     pendingScannedUrls = null;
     for (const response of clients) {
       try {
-        response.write('event: close\ndata: {"message":"Server shutting down."}\n\n');
+        writeToClient(response, 'event: close\ndata: {"message":"Server shutting down."}\n\n');
         response.end();
       } catch {
         // Ignore stale event clients during shutdown.

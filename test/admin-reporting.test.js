@@ -87,6 +87,7 @@ test('user reporting counts only unexpired sessions and preserves ordering', () 
       lastLoginAt: '2026-08-16T10:00:00.000Z',
       disabledAt: null,
       activeSessions: 1,
+      protected: false,
     },
     {
       id: 2,
@@ -96,8 +97,24 @@ test('user reporting counts only unexpired sessions and preserves ordering', () 
       lastLoginAt: '2026-08-16T11:00:00.000Z',
       disabledAt: '2026-08-16T11:30:00.000Z',
       activeSessions: 1,
+      protected: false,
     },
   ]);
+  context.db.close();
+});
+
+test('user deletion protects koldKat and removes other users', () => {
+  const context = fixture();
+  context.db.exec(`
+    INSERT INTO users VALUES
+      (1, 'koldKat', 'koldKat', '2026-01-01T00:00:00.000Z', NULL, NULL),
+      (2, 'temporary', 'Temporary', '2026-01-02T00:00:00.000Z', NULL, NULL);
+  `);
+
+  assert.throws(() => context.reporting.deleteUser(1), /protected/);
+  assert.equal(context.db.prepare('SELECT COUNT(*) AS count FROM users WHERE id = 1').get().count, 1);
+  context.reporting.deleteUser(2);
+  assert.equal(context.db.prepare('SELECT COUNT(*) AS count FROM users WHERE id = 2').get().count, 0);
   context.db.close();
 });
 
