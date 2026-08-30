@@ -45,11 +45,11 @@ function fixture(options = {}) {
   return { db, service, responses };
 }
 
-function addUser(db) {
+function addUser(db, avatarUrl = null) {
   db.prepare(`
-    INSERT INTO users (id, username, display_name, preload_model, preload_gallery)
-    VALUES (1, 'alex', 'Alex', 1, 0)
-  `).run();
+    INSERT INTO users (id, username, display_name, avatar_path, preload_model, preload_gallery)
+    VALUES (1, 'alex', 'Alex', ?, 1, 0)
+  `).run(avatarUrl);
 }
 
 function addSession(db, service, token, expiresAt) {
@@ -70,7 +70,7 @@ test('password hashes verify without accepting malformed values', () => {
 
 test('current user is resolved once and cached on the request', () => {
   const { service, db } = fixture();
-  addUser(db);
+  addUser(db, '/uploads/avatars/alex.jpg');
   addSession(db, service, 'session-token', new Date(NOW + TWO_WEEKS).toISOString());
   const req = { headers: { cookie: 'sg_session=session-token' } };
 
@@ -78,6 +78,7 @@ test('current user is resolved once and cached on the request', () => {
     id: 1,
     username: 'alex',
     displayName: 'Alex',
+    avatarUrl: '/uploads/avatars/alex.jpg',
     preloadModel: true,
     preloadGallery: false,
   });

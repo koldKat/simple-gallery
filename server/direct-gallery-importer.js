@@ -111,6 +111,7 @@ function createDirectGalleryImporter(ctx) {
         job.totals.galleriesProcessed = 1;
         job.totals.galleriesSkipped = 1;
         job.totals.modelsChecked = 1;
+        await refreshModelInState(model.folder);
         job.active = false;
         job.status = 'done';
         job.finishedAt = nowIso();
@@ -175,6 +176,10 @@ function createDirectGalleryImporter(ctx) {
       job.totals.galleriesImported = 1;
       job.totals.imagesImported = downloads.downloaded.length;
       job.totals.imagesSkipped = downloads.failures.length;
+      // The scanner deliberately ignores locked folders. The files and database
+      // record are complete now, so release this gallery before rebuilding model state.
+      activeImportGalleryPaths.delete(galleryPath);
+      clearImportPath(galleryPath);
       await refreshModelInState(model.folder);
       job.active = false;
       job.status = 'done';

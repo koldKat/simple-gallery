@@ -102,7 +102,7 @@ test('imports a configured direct-image gallery into an existing model', async (
   context.close();
 });
 
-test('known source URLs are skipped without writing import state', async () => {
+test('known source URLs refresh their model without writing import state', async () => {
   const context = fixture({ knownFolder: '007' });
   const result = await context.importer.importGallery({
     model: 'alpha',
@@ -112,7 +112,7 @@ test('known source URLs are skipped without writing import state', async () => {
   assert.equal(result.status, 'done');
   assert.equal(result.totals.galleriesSkipped, 1);
   assert.equal(context.saved(), 0);
-  assert.equal(context.refreshed(), 0);
+  assert.equal(context.refreshed(), 1);
   context.close();
 });
 

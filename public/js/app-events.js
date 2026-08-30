@@ -127,6 +127,9 @@ export function createAppEventController({
         loadState().catch(error => showNotice(error.message));
       }
     });
+    source.addEventListener('library-updated', () => {
+      loadState().catch(error => showNotice(error.message));
+    });
     source.addEventListener('notice', event => {
       const notice = JSON.parse(event.data);
       showNotice(notice.message);

@@ -78,7 +78,11 @@ test('model-state events replace totals and cached model summaries', () => {
   assert.deepEqual(getState().models.map(model => model.id), ['new']);
   assert.deepEqual(getState().totals, { models: 1, galleries: 3, images: 8 });
   assert.deepEqual(getState().latest, ['new']);
-  assert.deepEqual(calls.broadcasts.at(-1), ['state', { status: 'ready' }]);
+  assert.deepEqual(calls.broadcasts.at(-2), ['state', { status: 'ready' }]);
+  assert.deepEqual(calls.broadcasts.at(-1), ['library-updated', {
+    modelId: 'old',
+    scannedAt: '2026-01-01T00:00:00.000Z',
+  }]);
 });
 
 test('pause and stop commands set their request flags', async () => {

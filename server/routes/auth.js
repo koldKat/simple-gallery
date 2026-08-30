@@ -262,14 +262,14 @@ function handleAuthRoute(ctx, req, res, url) {
         })());
         clearAuthFailures(ip);
         sendJson(res, 200, {
-          user: {
+          user: publicUser({
             id: user.id,
             username: user.username,
             displayName: user.display_name,
+            avatarUrl: user.avatar_path || null,
             preloadModel: Boolean(user.preload_model),
             preloadGallery: Boolean(user.preload_gallery),
-            favoriteCount: favoriteCountForUser(user.id),
-          },
+          }),
         }, { 'set-cookie': sessionCookie(session.token, session.expiresAt) });
       })
       .catch(error => {

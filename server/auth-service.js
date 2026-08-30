@@ -161,6 +161,7 @@ function createAuthService({
       id: row.id,
       username: row.username,
       displayName: row.displayName,
+      avatarUrl: row.avatarUrl || null,
       preloadModel: Boolean(row.preloadModel),
       preloadGallery: Boolean(row.preloadGallery),
     };

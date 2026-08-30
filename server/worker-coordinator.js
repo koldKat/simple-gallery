@@ -62,6 +62,10 @@ function createWorkerCoordinator({
       scanProgress: null,
     });
     broadcast('state', stateNotice());
+    broadcast('library-updated', {
+      modelId: payload.modelName,
+      scannedAt: payload.scannedAt || nowIso(),
+    });
   }
 
   function handleEvent(message) {
