@@ -6,6 +6,7 @@ const path = require('path');
 function handleSeenRoute(ctx, req, res, url) {
   const {
     db,
+    withBusyRetry,
     readRequestBody,
     sendJson,
     requireUser,
@@ -27,13 +28,15 @@ function handleSeenRoute(ctx, req, res, url) {
         const imageName = String(payload.imageName || '').trim();
         if (!getGalleryById(galleryId)) throw new Error('Gallery not found.');
         if (!imageName) throw new Error('Missing image.');
-        if (req.method === 'POST') {
-          db.prepare('INSERT OR REPLACE INTO image_seen (user_id, gallery_id, image_name, seen_at) VALUES (?, ?, ?, ?)').run(user.id, galleryId, imageName, nowIso());
-          sendJson(res, 200, { ok: true, seen: true, ...seenSummaryForGallery(user.id, galleryId) });
-        } else {
+        const result = withBusyRetry(() => {
+          if (req.method === 'POST') {
+            db.prepare('INSERT OR REPLACE INTO image_seen (user_id, gallery_id, image_name, seen_at) VALUES (?, ?, ?, ?)').run(user.id, galleryId, imageName, nowIso());
+            return { ok: true, seen: true, ...seenSummaryForGallery(user.id, galleryId) };
+          }
           db.prepare('DELETE FROM image_seen WHERE user_id = ? AND gallery_id = ? AND image_name = ?').run(user.id, galleryId, imageName);
-          sendJson(res, 200, { ok: true, seen: false, ...seenSummaryForGallery(user.id, galleryId) });
-        }
+          return { ok: true, seen: false, ...seenSummaryForGallery(user.id, galleryId) };
+        });
+        sendJson(res, 200, result);
       })
       .catch(error => sendJson(res, 400, { error: error.message || 'Seen update failed.' }));
     return true;

@@ -83,6 +83,21 @@ test('space opens the first image when a gallery is selected', async () => {
   assert.deepEqual(calls.galleries, []);
 });
 
+test('lightbox keyboard actions stop before a focused background tile can handle them', async () => {
+  const { createAppEventController } = await loadModule();
+  const { controller } = fixture(createAppEventController, {
+    lightboxController: { handleKeydown: () => true, isOpen: () => true, bind() {} },
+  });
+  let stopped = false;
+
+  controller.handleDocumentKeydown({
+    key: ' ',
+    stopImmediatePropagation: () => { stopped = true; },
+  });
+
+  assert.equal(stopped, true);
+});
+
 test('browser back closes an open lightbox before changing the route', async () => {
   const { createAppEventController } = await loadModule();
   let routeChanges = 0;

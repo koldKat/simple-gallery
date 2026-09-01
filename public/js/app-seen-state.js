@@ -15,6 +15,13 @@ export function createSeenStateController({
   updateLightbox,
 }) {
   const overrides = new Map();
+  let imageWriteQueue = Promise.resolve();
+
+  function queueImageWrite(work) {
+    const request = imageWriteQueue.catch(() => {}).then(work);
+    imageWriteQueue = request.catch(() => {});
+    return request;
+  }
 
   function syncUserStatsDelta(previousSeenCount, nextSeenCount, galleryCount) {
     if (!state.userStats) return;
@@ -192,10 +199,10 @@ export function createSeenStateController({
     if (options.render !== false) renderSeenState({ imageIndex });
     renderLightboxMeta();
     try {
-      const payload = await fetchJson('/api/seen/image', {
+      const payload = await queueImageWrite(() => fetchJson('/api/seen/image', {
         method: seen ? 'POST' : 'DELETE',
         body: JSON.stringify({ galleryId: image.dbId, imageName: image.name }),
-      });
+      }));
       const localSummary = activeGallerySummary();
       const summary = localSummary?.dbId === Number(image.dbId || 0)
         ? localSummary

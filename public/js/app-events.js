@@ -33,7 +33,10 @@ export function createAppEventController({
   loadCurrentUserStats,
 }) {
   function handleDocumentKeydown(event) {
-    if (lightboxController.handleKeydown(event)) return;
+    if (lightboxController.handleKeydown(event)) {
+      event.stopImmediatePropagation?.();
+      return;
+    }
     if (event.target?.closest?.('input, textarea, select, button, a')) return;
     if ((event.key === ' ' || event.key === 'Spacebar') && state.mode === 'model') {
       event.preventDefault();
@@ -108,7 +111,8 @@ export function createAppEventController({
   }
 
   function bindWindowEvents() {
-    documentObject.addEventListener('keydown', handleDocumentKeydown);
+    // Capture lightbox keys before a focused image tile can react to Space.
+    documentObject.addEventListener('keydown', handleDocumentKeydown, true);
     windowObject.addEventListener('popstate', handlePopState);
     windowObject.addEventListener('resize', scheduleSidebarLayoutSync);
     windowObject.addEventListener('scroll', scheduleSidebarLayoutSync, { passive: true });

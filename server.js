@@ -1110,6 +1110,7 @@ server = http.createServer((req, res) => {
 
   if (handleSeenRoute({
     db,
+    withBusyRetry,
     readRequestBody,
     sendJson,
     requireUser,

@@ -134,3 +134,24 @@ test('failed image seen requests restore the optimistic local state', async () =
   assert.equal(current.seenCount, 0);
   assert.equal(current.seen, false);
 });
+
+test('image seen writes are serialized while browsing a gallery', async () => {
+  const { createSeenStateController } = await loadModule();
+  const pending = [];
+  const { controller, state } = actionController(createSeenStateController, {
+    fetchJson: () => new Promise(resolve => pending.push(resolve)),
+  });
+
+  const first = controller.setImageSeen(state.activeImages[0], true);
+  const second = controller.setImageSeen(state.activeImages[1], true);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(pending.length, 1);
+
+  pending.shift()({ seenCount: 1, seen: false });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(pending.length, 1);
+  pending.shift()({ seenCount: 2, seen: true });
+  await Promise.all([first, second]);
+
+  assert.equal(state.activeImages.every(image => image.seen), true);
+});
