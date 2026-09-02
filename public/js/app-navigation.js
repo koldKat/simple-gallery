@@ -152,8 +152,10 @@ export function createAppNavigationController({
       state.galleryListExpanded = true;
       resetActiveImages();
     }
+    const activeImageSnapshot = String(state.activeImageSource || '').startsWith('favorites-');
     const activeGalleryChanged = Boolean(
-      state.activeGalleryId
+      !activeImageSnapshot
+      && state.activeGalleryId
       && (state.activeGalleryId !== currentGallery()?.id
         || previousGalleryRevision !== galleryRevision(currentGallery()))
     );

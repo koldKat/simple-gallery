@@ -158,3 +158,22 @@ test('scan refresh clears active images when the selected gallery content change
   assert.equal(calls.decoded, 1);
   assert.equal(calls.preloadReset, 1);
 });
+
+test('scan refresh retains random favorite lightbox snapshots', async () => {
+  const { createAppNavigationController } = await loadModule();
+  const { controller, state } = fixture(createAppNavigationController);
+  state.mode = 'favorites';
+  state.activeGalleryId = 'favorites';
+  state.activeImageSource = 'favorites-random';
+  state.imagesLoading = false;
+  const activeImages = state.activeImages;
+
+  controller.setData({
+    scannedAt: 'two',
+    models: state.data.models,
+    user: null,
+  });
+
+  assert.strictEqual(state.activeImages, activeImages);
+  assert.equal(state.activeGalleryId, 'favorites');
+});
