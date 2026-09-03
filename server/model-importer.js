@@ -40,6 +40,10 @@ function createModelImporter(ctx) {
     nowIso,
   } = ctx;
 
+  function isUnavailableModelPage(error) {
+    return Number(error?.status) === 404 || Number(error?.status) === 410;
+  }
+
   async function importModel(sourceUrl) {
     const job = getJob();
     try {
@@ -199,6 +203,12 @@ function createModelImporter(ctx) {
       }
       return importSnapshot();
     } catch (error) {
+      if (isUnavailableModelPage(error)) {
+        job.totals.modelsChecked += 1;
+        job.current = null;
+        updateImport(`Skipping unavailable model page (${error.status}): ${sourceUrl}`, {}, { force: true });
+        return importSnapshot();
+      }
       job.active = false;
       job.status = 'error';
       job.finishedAt = nowIso();

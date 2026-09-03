@@ -7,7 +7,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createModelImporter } = require('../server/model-importer');
 
-function fixture({ known = false, invalid = false } = {}) {
+function fixture({ known = false, invalid = false, modelFetchError = null } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'simple-gallery-model-importer-'));
   const galleryUrl = 'https://example.test/gallery/one';
   const record = { galleries: known ? { [galleryUrl]: { folder: '001', title: 'Old' } } : {} };
@@ -37,7 +37,10 @@ function fixture({ known = false, invalid = false } = {}) {
     validateSourceUrl: () => ({ parsed: { pathname: invalid ? '/wrong/alpha' : '/model/alpha' } }),
     canonicalRemoteUrl: value => new URL(value).origin + new URL(value).pathname,
     updateImport: (message, _patch, options) => updates.push({ message, options }),
-    fetchText: async url => url === galleryUrl ? 'gallery-html' : 'model-html',
+    fetchText: async url => {
+      if (url !== galleryUrl && modelFetchError) throw modelFetchError;
+      return url === galleryUrl ? 'gallery-html' : 'model-html';
+    },
     extractModelName: () => 'Alpha',
     sanitizeFolderName: () => 'alpha',
     mediaRoot: () => root,
@@ -123,5 +126,19 @@ test('invalid model URLs fail the active job and record the error', async () => 
   assert.equal(context.job.finishedAt, '2026-08-16T12:00:00.000Z');
   assert.equal(context.job.totals.errors, 1);
   assert.equal(context.errors.length, 1);
+  context.close();
+});
+
+test('unavailable model pages are skipped without stopping the import job', async () => {
+  const error = Object.assign(new Error('Fetch failed 404'), { status: 404 });
+  const context = fixture({ modelFetchError: error });
+  const result = await context.importer.importModel('https://example.test/model/missing');
+
+  assert.equal(result.status, 'running');
+  assert.equal(context.job.active, true);
+  assert.equal(context.job.totals.modelsChecked, 1);
+  assert.equal(context.job.totals.errors, 0);
+  assert.deepEqual(context.errors, []);
+  assert.match(context.updates.at(-1).message, /Skipping unavailable model page \(404\)/);
   context.close();
 });

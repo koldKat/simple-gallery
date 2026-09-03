@@ -62,10 +62,11 @@ test('fetch retries failed responses and honors capped Retry-After delay', async
 
 test('terminal fetch errors report attempts, status, and URL', async () => {
   const network = networkFor(async () => response({ status: 502 }), { sleep: async () => {} });
-  await assert.rejects(
-    network.fetchText('https://example.test/broken'),
-    /Fetch failed after 3 attempts.*HTTP 502/
-  );
+  await assert.rejects(network.fetchText('https://example.test/broken'), error => {
+    assert.match(error.message, /Fetch failed after 3 attempts.*HTTP 502/);
+    assert.equal(error.status, 502);
+    return true;
+  });
 });
 
 test('page fetches reject unapproved initial and redirected hosts', async () => {

@@ -91,7 +91,9 @@ function createImportNetwork({
         await sleep(retryDelayMs(attempt, error));
       }
     }
-    throw new Error(`${label} failed after ${retries + 1} attempts for ${remoteUrl}: ${fetchErrorMessage(lastError)}`);
+    const finalError = new Error(`${label} failed after ${retries + 1} attempts for ${remoteUrl}: ${fetchErrorMessage(lastError)}`);
+    if (Number.isInteger(lastError?.status)) finalError.status = lastError.status;
+    throw finalError;
   }
 
   async function fetchText(remoteUrl, options = {}) {
