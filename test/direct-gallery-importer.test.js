@@ -38,6 +38,8 @@ function fixture({ knownFolder = '', modelRows = null } = {}) {
       }),
     },
     canonicalRemoteUrl: value => new URL(value).toString(),
+    normalizeModelName: value => String(value).replace(/[_-]+/g, ' ').replace(/\b\w/g, char => char.toUpperCase()),
+    sanitizeFolderName: value => String(value).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
     fetchText: async () => '<html></html>',
     mediaRoot: () => root,
     mkdirp: target => fs.mkdirSync(target, { recursive: true }),
@@ -116,15 +118,28 @@ test('known source URLs refresh their model without writing import state', async
   context.close();
 });
 
-test('requires an unambiguous existing model and exposes the failure in job state', async () => {
+test('creates a direct-import-only model when no existing model matches', async () => {
   const context = fixture({ modelRows: [] });
-  assert.throws(() => context.importer.findModel('missing'), /was not found/);
+  assert.deepEqual(context.importer.findModel('New Model_Name'), {
+    id: null,
+    name: 'New Model Name',
+    folder: 'new-model-name',
+    isNew: true,
+  });
   const result = await context.importer.importGallery({
-    model: 'missing',
+    model: 'New Model_Name',
     url: 'https://source.example.test/galleries/one',
   });
-  assert.equal(result.status, 'error');
-  assert.equal(result.totals.errors, 1);
-  assert.match(context.errors[0].message, /was not found/);
+  assert.equal(result.status, 'done');
+  assert.equal(context.job().modelName, 'New Model Name');
+  assert.equal(context.job().modelFolder, 'new-model-name');
+  assert.equal(context.refreshed(), 1);
+  assert.deepEqual(context.errors, []);
+  context.close();
+});
+
+test('rejects ambiguous existing model matches', async () => {
+  const context = fixture({ modelRows: [{ id: 1, name: 'Alpha', folder: 'alpha' }, { id: 2, name: 'Alpha Two', folder: 'alpha-two' }] });
+  assert.throws(() => context.importer.findModel('Alpha Name'), /More than one model matches/);
   context.close();
 });

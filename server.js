@@ -771,6 +771,8 @@ const { importGallery: importDirectGallery } = createDirectGalleryImporter({
   clearImportErrors,
   galleryProviderRegistry,
   canonicalRemoteUrl,
+  normalizeModelName,
+  sanitizeFolderName,
   fetchText,
   mediaRoot,
   mkdirp,

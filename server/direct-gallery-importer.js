@@ -29,6 +29,8 @@ function createDirectGalleryImporter(ctx) {
     clearImportErrors,
     galleryProviderRegistry,
     canonicalRemoteUrl,
+    normalizeModelName,
+    sanitizeFolderName,
     fetchText,
     mediaRoot,
     mkdirp,
@@ -53,13 +55,14 @@ function createDirectGalleryImporter(ctx) {
 
   function findModel(value) {
     const requested = String(value || '').trim();
-    if (!requested) throw new Error('Enter an existing model name or folder.');
-    const exactFolder = db.prepare('SELECT id, name, folder FROM models WHERE folder = ?').get(requested);
+    if (!requested) throw new Error('Enter a model name or folder.');
+    const folder = sanitizeFolderName(requested);
+    const exactFolder = db.prepare('SELECT id, name, folder FROM models WHERE folder = ?').get(folder);
     if (exactFolder) return exactFolder;
-    const rows = db.prepare('SELECT id, name, folder FROM models WHERE lower(name) = lower(?) OR lower(folder) = lower(?)').all(requested, requested);
+    const rows = db.prepare('SELECT id, name, folder FROM models WHERE lower(name) = lower(?) OR lower(folder) = lower(?)').all(requested, folder);
     if (rows.length === 1) return rows[0];
     if (rows.length > 1) throw new Error('More than one model matches; enter the exact model folder.');
-    throw new Error(`Model "${requested}" was not found.`);
+    return { id: null, name: normalizeModelName(requested), folder, isNew: true };
   }
 
   async function importGallery({ model: modelValue, url: sourceValue, providerId = '' } = {}) {

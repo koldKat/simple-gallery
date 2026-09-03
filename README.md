@@ -91,7 +91,7 @@ The Source Profile may contain a `galleryProviders` array for importing individu
 }
 ```
 
-Add this property to the existing Source Profile object rather than replacing its primary-source fields. Then use **Admin > Import Gallery** with an existing model name or exact folder and the gallery URL. The URL is matched to a provider automatically.
+Add this property to the existing Source Profile object rather than replacing its primary-source fields. Then use **Admin > Import Gallery** with a model name or exact folder and the gallery URL. Existing models are matched first; an unmatched name creates a new direct-import-only model after the gallery downloads successfully. The URL is matched to a provider automatically.
 
 Imported galleries store their provider ID. Rescan All continues to discover galleries only from each model's primary source. Verify Known uses the stored provider for additional galleries; if that provider is removed or no longer accepts the saved URL, the gallery is skipped and preserved rather than treated as invalid. Repairs are downloaded into a staging directory and replace existing files only when every expected image succeeds. Initial and redirected page and image URLs are restricted to their configured host lists.
 
